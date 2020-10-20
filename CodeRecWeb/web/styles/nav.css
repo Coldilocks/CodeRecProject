@@ -1,0 +1,17 @@
+#navigation{
+    position: fixed;
+    top:0;
+    width: 100%;
+    z-index: 99999;
+
+}
+
+
+/*导航栏颜色，将背景图片去掉，盒子层叠去掉，然后改颜色*/
+/*.navbar-default{*/
+    /*background-color: #f8f8f8;*/
+    /*background-image: none!important;*/
+    /*box-shadow: none!important;*/
+    /*border: none!important;*/
+
+/*}*/

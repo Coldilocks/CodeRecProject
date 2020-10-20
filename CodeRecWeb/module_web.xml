@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_web" default="compile.module.web">
+  <dirname property="module.web.basedir" file="${ant.file.module_web}"/>
+  
+  <property name="module.jdk.home.web" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.web" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.web" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.web" value="-encoding UTF-8 -source 8 -target 1.8 ${compiler.args}"/>
+  
+  <property name="web.output.dir" value="${module.web.basedir}/target/classes"/>
+  <property name="web.testoutput.dir" value="${module.web.basedir}/target/test-classes"/>
+  
+  <path id="web.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="web.module.production.classpath">
+    <path refid="${module.jdk.classpath.web}"/>
+    <path refid="library.tomcat_9.0.0.m20.classpath"/>
+    <pathelement location="${extractor.output.dir}"/>
+    <path refid="library.maven:_com.google.code.gson:gson:1.5.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-core:1.3.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-library:1.3.classpath"/>
+    <path refid="library.maven:_org.json:json:20140107.classpath"/>
+    <path refid="library.maven:_net.sf.json-lib:json-lib:jdk15:2.2.3.classpath"/>
+    <path refid="library.maven:_commons-beanutils:commons-beanutils:1.7.0.classpath"/>
+    <path refid="library.maven:_commons-collections:commons-collections:3.2.classpath"/>
+    <path refid="library.maven:_commons-logging:commons-logging:1.1.1.classpath"/>
+    <path refid="library.maven:_net.sf.ezmorph:ezmorph:1.0.6.classpath"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:3.3.0.classpath"/>
+    <path refid="library.maven:_mysql:mysql-connector-java:5.1.18.classpath"/>
+    <path refid="library.maven:_org.eclipse.jdt:org.eclipse.jdt.core:3.12.2.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.resources:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.expressions:3.6.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.runtime:3.15.100.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.osgi:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.common:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.jobs:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.registry:3.8.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.preferences:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.contenttype:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.app:1.4.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.filesystem:1.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.text:3.8.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.commands:3.9.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.osgi:org.eclipse.osgi:3.7.1.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_org.jsoup:jsoup:1.10.2.classpath"/>
+    <path refid="library.maven:_org.python:jython:2.7.0.classpath"/>
+    <path refid="library.maven:_dom4j:dom4j:1.6.1.classpath"/>
+    <path refid="library.maven:_xml-apis:xml-apis:1.0.b2.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:3.8.0.classpath"/>
+    <path refid="library.maven:_com.apple:applejavaextensions:1.4.classpath"/>
+    <path refid="library.maven:_de.jollyday:jollyday:0.4.9.classpath"/>
+    <path refid="library.maven:_javax.xml.bind:jaxb-api:2.2.7.classpath"/>
+    <path refid="library.maven:_org.apache.commons:commons-lang3:3.3.1.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queryparser:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-sandbox:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-analyzers-common:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queries:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-core:4.10.3.classpath"/>
+    <path refid="library.maven:_javax.servlet:javax.servlet-api:3.0.1.classpath"/>
+    <path refid="library.maven:_com.io7m.xom:xom:1.2.10.classpath"/>
+    <path refid="library.maven:_xerces:xercesimpl:2.8.0.classpath"/>
+    <path refid="library.maven:_xalan:xalan:2.7.0.classpath"/>
+    <path refid="library.maven:_joda-time:joda-time:2.9.4.classpath"/>
+    <path refid="library.maven:_com.googlecode.efficient-java-matrix-library:ejml:0.23.classpath"/>
+    <path refid="library.maven:_org.glassfish:javax.json:1.0.4.classpath"/>
+    <path refid="library.maven:_com.google.protobuf:protobuf-java:3.2.0.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:models:3.8.0.classpath"/>
+    <path refid="library.maven:_com.github.javaparser:javaparser-core:3.6.11.classpath"/>
+    <path refid="library.maven:_commons-lang:commons-lang:2.4.classpath"/>
+    <path refid="library.maven:_com.google.googlejavaformat:google-java-format:1.3.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:19.0.classpath"/>
+    <path refid="library.maven:_com.google.errorprone:javac:9-dev-r3297-1-shaded.classpath"/>
+    <path refid="library.maven:_com.google.code.javaparser:javaparser:1.0.11.classpath"/>
+    <pathelement location="${graphconstruction.output.dir}"/>
+  </path>
+  
+  <path id="web.runtime.production.module.classpath">
+    <pathelement location="${web.output.dir}"/>
+    <path refid="extractor.runtime.production.module.classpath"/>
+    <path refid="library.maven:_com.google.code.gson:gson:1.5.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-core:1.3.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-library:1.3.classpath"/>
+    <path refid="library.maven:_org.json:json:20140107.classpath"/>
+    <path refid="library.maven:_net.sf.json-lib:json-lib:jdk15:2.2.3.classpath"/>
+    <path refid="library.maven:_commons-beanutils:commons-beanutils:1.7.0.classpath"/>
+    <path refid="library.maven:_commons-collections:commons-collections:3.2.classpath"/>
+    <path refid="library.maven:_commons-logging:commons-logging:1.1.1.classpath"/>
+    <path refid="library.maven:_net.sf.ezmorph:ezmorph:1.0.6.classpath"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:3.3.0.classpath"/>
+    <path refid="library.maven:_mysql:mysql-connector-java:5.1.18.classpath"/>
+    <path refid="library.maven:_org.eclipse.jdt:org.eclipse.jdt.core:3.12.2.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.resources:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.expressions:3.6.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.runtime:3.15.100.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.osgi:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.common:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.jobs:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.registry:3.8.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.preferences:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.contenttype:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.app:1.4.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.filesystem:1.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.text:3.8.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.commands:3.9.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.osgi:org.eclipse.osgi:3.7.1.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_org.jsoup:jsoup:1.10.2.classpath"/>
+    <path refid="library.maven:_org.python:jython:2.7.0.classpath"/>
+    <path refid="library.maven:_dom4j:dom4j:1.6.1.classpath"/>
+    <path refid="library.maven:_xml-apis:xml-apis:1.0.b2.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:3.8.0.classpath"/>
+    <path refid="library.maven:_com.apple:applejavaextensions:1.4.classpath"/>
+    <path refid="library.maven:_de.jollyday:jollyday:0.4.9.classpath"/>
+    <path refid="library.maven:_javax.xml.bind:jaxb-api:2.2.7.classpath"/>
+    <path refid="library.maven:_org.apache.commons:commons-lang3:3.3.1.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queryparser:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-sandbox:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-analyzers-common:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queries:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-core:4.10.3.classpath"/>
+    <path refid="library.maven:_javax.servlet:javax.servlet-api:3.0.1.classpath"/>
+    <path refid="library.maven:_com.io7m.xom:xom:1.2.10.classpath"/>
+    <path refid="library.maven:_xerces:xercesimpl:2.8.0.classpath"/>
+    <path refid="library.maven:_xalan:xalan:2.7.0.classpath"/>
+    <path refid="library.maven:_joda-time:joda-time:2.9.4.classpath"/>
+    <path refid="library.maven:_com.googlecode.efficient-java-matrix-library:ejml:0.23.classpath"/>
+    <path refid="library.maven:_org.glassfish:javax.json:1.0.4.classpath"/>
+    <path refid="library.maven:_com.google.protobuf:protobuf-java:3.2.0.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:models:3.8.0.classpath"/>
+    <path refid="library.maven:_com.github.javaparser:javaparser-core:3.6.11.classpath"/>
+    <path refid="library.maven:_commons-lang:commons-lang:2.4.classpath"/>
+    <path refid="library.maven:_com.google.googlejavaformat:google-java-format:1.3.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:19.0.classpath"/>
+    <path refid="library.maven:_com.google.errorprone:javac:9-dev-r3297-1-shaded.classpath"/>
+    <path refid="library.maven:_com.google.code.javaparser:javaparser:1.0.11.classpath"/>
+    <path refid="graphconstruction.runtime.production.module.classpath"/>
+  </path>
+  
+  <path id="web.module.classpath">
+    <path refid="${module.jdk.classpath.web}"/>
+    <pathelement location="${web.output.dir}"/>
+    <path refid="library.tomcat_9.0.0.m20.classpath"/>
+    <pathelement location="${extractor.testoutput.dir}"/>
+    <pathelement location="${extractor.output.dir}"/>
+    <path refid="library.maven:_com.google.code.gson:gson:1.5.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-core:1.3.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-library:1.3.classpath"/>
+    <path refid="library.maven:_org.json:json:20140107.classpath"/>
+    <path refid="library.maven:_net.sf.json-lib:json-lib:jdk15:2.2.3.classpath"/>
+    <path refid="library.maven:_commons-beanutils:commons-beanutils:1.7.0.classpath"/>
+    <path refid="library.maven:_commons-collections:commons-collections:3.2.classpath"/>
+    <path refid="library.maven:_commons-logging:commons-logging:1.1.1.classpath"/>
+    <path refid="library.maven:_net.sf.ezmorph:ezmorph:1.0.6.classpath"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:3.3.0.classpath"/>
+    <path refid="library.maven:_mysql:mysql-connector-java:5.1.18.classpath"/>
+    <path refid="library.maven:_org.eclipse.jdt:org.eclipse.jdt.core:3.12.2.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.resources:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.expressions:3.6.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.runtime:3.15.100.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.osgi:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.common:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.jobs:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.registry:3.8.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.preferences:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.contenttype:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.app:1.4.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.filesystem:1.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.text:3.8.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.commands:3.9.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.osgi:org.eclipse.osgi:3.7.1.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_org.jsoup:jsoup:1.10.2.classpath"/>
+    <path refid="library.maven:_org.python:jython:2.7.0.classpath"/>
+    <path refid="library.maven:_dom4j:dom4j:1.6.1.classpath"/>
+    <path refid="library.maven:_xml-apis:xml-apis:1.0.b2.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:3.8.0.classpath"/>
+    <path refid="library.maven:_com.apple:applejavaextensions:1.4.classpath"/>
+    <path refid="library.maven:_de.jollyday:jollyday:0.4.9.classpath"/>
+    <path refid="library.maven:_javax.xml.bind:jaxb-api:2.2.7.classpath"/>
+    <path refid="library.maven:_org.apache.commons:commons-lang3:3.3.1.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queryparser:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-sandbox:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-analyzers-common:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queries:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-core:4.10.3.classpath"/>
+    <path refid="library.maven:_javax.servlet:javax.servlet-api:3.0.1.classpath"/>
+    <path refid="library.maven:_com.io7m.xom:xom:1.2.10.classpath"/>
+    <path refid="library.maven:_xerces:xercesimpl:2.8.0.classpath"/>
+    <path refid="library.maven:_xalan:xalan:2.7.0.classpath"/>
+    <path refid="library.maven:_joda-time:joda-time:2.9.4.classpath"/>
+    <path refid="library.maven:_com.googlecode.efficient-java-matrix-library:ejml:0.23.classpath"/>
+    <path refid="library.maven:_org.glassfish:javax.json:1.0.4.classpath"/>
+    <path refid="library.maven:_com.google.protobuf:protobuf-java:3.2.0.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:models:3.8.0.classpath"/>
+    <path refid="library.maven:_com.github.javaparser:javaparser-core:3.6.11.classpath"/>
+    <path refid="library.maven:_commons-lang:commons-lang:2.4.classpath"/>
+    <path refid="library.maven:_com.google.googlejavaformat:google-java-format:1.3.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:19.0.classpath"/>
+    <path refid="library.maven:_com.google.errorprone:javac:9-dev-r3297-1-shaded.classpath"/>
+    <path refid="library.maven:_com.google.code.javaparser:javaparser:1.0.11.classpath"/>
+    <pathelement location="${graphconstruction.testoutput.dir}"/>
+    <pathelement location="${graphconstruction.output.dir}"/>
+  </path>
+  
+  <path id="web.runtime.module.classpath">
+    <pathelement location="${web.testoutput.dir}"/>
+    <pathelement location="${web.output.dir}"/>
+    <path refid="library.tomcat_9.0.0.m20.classpath"/>
+    <path refid="extractor.runtime.module.classpath"/>
+    <path refid="library.maven:_com.google.code.gson:gson:1.5.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-core:1.3.classpath"/>
+    <path refid="library.maven:_org.hamcrest:hamcrest-library:1.3.classpath"/>
+    <path refid="library.maven:_org.json:json:20140107.classpath"/>
+    <path refid="library.maven:_net.sf.json-lib:json-lib:jdk15:2.2.3.classpath"/>
+    <path refid="library.maven:_commons-beanutils:commons-beanutils:1.7.0.classpath"/>
+    <path refid="library.maven:_commons-collections:commons-collections:3.2.classpath"/>
+    <path refid="library.maven:_commons-logging:commons-logging:1.1.1.classpath"/>
+    <path refid="library.maven:_net.sf.ezmorph:ezmorph:1.0.6.classpath"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:3.3.0.classpath"/>
+    <path refid="library.maven:_mysql:mysql-connector-java:5.1.18.classpath"/>
+    <path refid="library.maven:_org.eclipse.jdt:org.eclipse.jdt.core:3.12.2.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.resources:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.expressions:3.6.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.runtime:3.15.100.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.osgi:3.13.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.common:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.jobs:3.10.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.registry:3.8.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.preferences:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.contenttype:3.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.equinox.app:1.4.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.filesystem:1.7.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.text:3.8.0.classpath"/>
+    <path refid="library.maven:_org.eclipse.platform:org.eclipse.core.commands:3.9.200.classpath"/>
+    <path refid="library.maven:_org.eclipse.osgi:org.eclipse.osgi:3.7.1.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_org.jsoup:jsoup:1.10.2.classpath"/>
+    <path refid="library.maven:_org.python:jython:2.7.0.classpath"/>
+    <path refid="library.maven:_dom4j:dom4j:1.6.1.classpath"/>
+    <path refid="library.maven:_xml-apis:xml-apis:1.0.b2.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:3.8.0.classpath"/>
+    <path refid="library.maven:_com.apple:applejavaextensions:1.4.classpath"/>
+    <path refid="library.maven:_de.jollyday:jollyday:0.4.9.classpath"/>
+    <path refid="library.maven:_javax.xml.bind:jaxb-api:2.2.7.classpath"/>
+    <path refid="library.maven:_org.apache.commons:commons-lang3:3.3.1.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queryparser:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-sandbox:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-analyzers-common:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-queries:4.10.3.classpath"/>
+    <path refid="library.maven:_org.apache.lucene:lucene-core:4.10.3.classpath"/>
+    <path refid="library.maven:_javax.servlet:javax.servlet-api:3.0.1.classpath"/>
+    <path refid="library.maven:_com.io7m.xom:xom:1.2.10.classpath"/>
+    <path refid="library.maven:_xerces:xercesimpl:2.8.0.classpath"/>
+    <path refid="library.maven:_xalan:xalan:2.7.0.classpath"/>
+    <path refid="library.maven:_joda-time:joda-time:2.9.4.classpath"/>
+    <path refid="library.maven:_com.googlecode.efficient-java-matrix-library:ejml:0.23.classpath"/>
+    <path refid="library.maven:_org.glassfish:javax.json:1.0.4.classpath"/>
+    <path refid="library.maven:_com.google.protobuf:protobuf-java:3.2.0.classpath"/>
+    <path refid="library.maven:_edu.stanford.nlp:stanford-corenlp:models:3.8.0.classpath"/>
+    <path refid="library.maven:_com.github.javaparser:javaparser-core:3.6.11.classpath"/>
+    <path refid="library.maven:_commons-lang:commons-lang:2.4.classpath"/>
+    <path refid="library.maven:_com.google.googlejavaformat:google-java-format:1.3.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:19.0.classpath"/>
+    <path refid="library.maven:_com.google.errorprone:javac:9-dev-r3297-1-shaded.classpath"/>
+    <path refid="library.maven:_com.google.code.javaparser:javaparser:1.0.11.classpath"/>
+    <path refid="graphconstruction.runtime.module.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.web">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.web">
+    <patternset refid="compiler.excluded"/>
+    <patternset refid="excluded.from.module.web"/>
+  </patternset>
+  
+  <path id="web.module.sourcepath">
+    <dirset dir="${module.web.basedir}">
+      <include name="src/main/java"/>
+      <include name="src/main/resources"/>
+    </dirset>
+  </path>
+  
+  <path id="web.module.test.sourcepath">
+    <dirset dir="${module.web.basedir}">
+      <include name="src/test/java"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.web" depends="compile.module.web.production,compile.module.web.tests" description="Compile module Web"/>
+  
+  <target name="compile.module.web.production" depends="register.custom.compilers,compile.module.extractor,compile.module.graphconstruction" description="Compile module Web; production classes">
+    <mkdir dir="${web.output.dir}"/>
+    <javac2 destdir="${web.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.web}/javac">
+      <compilerarg line="${compiler.args.web}"/>
+      <bootclasspath refid="web.module.bootclasspath"/>
+      <classpath refid="web.module.production.classpath"/>
+      <src refid="web.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.web"/>
+    </javac2>
+    
+    <copy todir="${web.output.dir}">
+      <fileset dir="${module.web.basedir}/src/main/java">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+        <patternset refid="excluded.from.compilation.web"/>
+      </fileset>
+      <fileset dir="${module.web.basedir}/src/main/resources">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+        <patternset refid="excluded.from.compilation.web"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.web.tests" depends="register.custom.compilers,compile.module.web.production" description="compile module Web; test classes" unless="skip.tests">
+    <mkdir dir="${web.testoutput.dir}"/>
+    <javac2 destdir="${web.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.web}/javac">
+      <compilerarg line="${compiler.args.web}"/>
+      <bootclasspath refid="web.module.bootclasspath"/>
+      <classpath refid="web.module.classpath"/>
+      <src refid="web.module.test.sourcepath"/>
+      <patternset refid="excluded.from.compilation.web"/>
+    </javac2>
+    
+    <copy todir="${web.testoutput.dir}">
+      <fileset dir="${module.web.basedir}/src/test/java">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+        <patternset refid="excluded.from.compilation.web"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="clean.module.web" description="cleanup module">
+    <delete dir="${web.output.dir}"/>
+    <delete dir="${web.testoutput.dir}"/>
+  </target>
+</project>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Code Recommendation - Tool</title>
+  <link type="text/css" rel="stylesheet" href="styles/index.css">
+  <link type="text/css" rel="stylesheet" href="styles/css3-ordered-list-styles.css">
+  <link type="text/css" rel="stylesheet" href="styles/nav.css">
+  <link type="text/css" rel="stylesheet" href="styles/bootstrap.css">
+  <link type="text/css" rel="stylesheet" href="styles/introjs.css">
+    <link type="text/css" rel="stylesheet" href="styles/introjs-modern.css">
+  <!--<script type="text/javascript" src="http://10.131.253.117:8089/CodeRecommendation/scripts/jquery.min.js"></script>-->
+</head>
+<body onload="showIntro()">
+<div>
+
+  <header>
+    <div class="nav" style="margin-top: 50px">
+      <h1> Code Recommendation </h1>
+      <span> -- a generative API usage code recommendation tool </span><br>
+      <span> -- version 1.0, supports JDK library in statement level recommendation.</span>
+      <span> | <a class="focus" href="index.html"> Tool </a> | <a class="" href="howto.html" data-step="4" data-intro="And here is the example to show you how to use this tool."> How-to-use </a> | </span>
+    </div>
+  </header>
+
+  <div id="navigation">
+  </div>
+  
+  <div class="container">
+    <div class="pannel left">
+      <div class="p_head">
+        <div class="left">
+          <button class="noactive">Code to be completed</button>
+        </div>
+        <div class="right">
+          <button class="active" onclick="submit()" data-step="2" data-intro="Move your cursor to the position you want(line 14), or mark it as a '$hole$', then hit this button to request recommendations.">Recommend</button>
+        </div>
+      </div>
+      <div class="p_body" data-step="1" data-intro="Type your code here which includes:
+      <span>
+<ul> <li> import declaration that involves classes in the JDK library that have been used in the code to be completed</li>
+     <li> class declaration that the code to be completed belongs to </li>
+     <li> field declaration that the code to be completed involves </li>
+     <li> method declaration that the code to be completed belongs to </li>
+     <li> the code to be completed in the method </li>
+</ul></span>">
+        <pre class="" id="editor">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+        byte[] messageByte = message.getBytes();
+        String signMode = null;
+        if(pk == null){
+            pk = getPrivateKey("RSA");
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }else{ 
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }
+        $hole$
+    }
+}</pre>
+      </div>
+      <div id="menu">
+        <ol class="rectangle-list" id="paramlist">
+        </ol>
+      </div>
+    </div>
+
+    <div class="pannel right">
+      <div class="p_head">
+        <div>
+          <button class="noactive">Code recommendations (click one recommendation you want)</button>
+        </div>
+      </div>
+      <div class="p_body" data-step="3" data-intro="The API usage code recommendations appear here.">
+        <div id="intro0">
+        </div>
+        <ol class="rectangle-list" id="recmdlist">
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div>
+      <p>Copyright@ FDU Software Engineering Laboratory</p>
+    </div>
+  </footer>
+</div>
+
+<script src="scripts/jquery-3.3.1.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/bootstrap.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/lib/ace/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/nav.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="scripts/lib/intro.js"></script>
+<script type="text/javascript" src="scripts/myintro.js" ></script>
+<!--<script type="text/javascript" src="http://10.131.253.117:8089/CodeRecommendation/scripts/controllers.js"></script>-->
+<script type="text/javascript" src="scripts/controllers.js"></script>
+
+</body>
+</html>

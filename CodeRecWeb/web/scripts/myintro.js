@@ -1,0 +1,3 @@
+function showIntro(){
+introJs().start();
+}

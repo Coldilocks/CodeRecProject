@@ -1,0 +1,151 @@
+body {
+    margin: 0;
+    font-family: 'Berkshire Swash', cursive,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+    background-color: #FFFFFF;
+}
+
+header {
+    color: #FFFFFF;
+    background-color: #0e90d2;
+}
+
+.nav {
+    min-height: 60px;
+    padding-top:20px;
+    padding-right:15px;
+    padding-left:15px;
+    margin-right:auto;
+    margin-left:auto;
+}
+
+.nav h1{
+    font-family: 'Berkshire Swash', cursive,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    margin-left: 10%;
+}
+
+.nav span{
+    font-family: 'Berkshire Swash', cursive,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    margin-left: 25%;
+}
+
+.nav span a{
+    color: #fff;
+    font-weight: bolder;
+    font-size: 18px;
+}
+
+.focus {
+    text-decoration: underline;
+}
+
+.container {
+    width:90%;
+    min-height: 580px;
+    padding:20px;
+    margin-right:auto;
+    margin-left:auto;
+}
+
+.pannel {
+    width: 48%;
+    overflow-scrolling: auto;
+}
+
+.p_head {
+    height: 50px;
+    border-left: 3px solid #0e90d2;
+    /*#B0C4DE;       */
+}
+
+.p_body{
+    height: 500px;
+    border: 1px solid #0e90d2;
+    overflow: scroll;
+}
+
+#editor {
+    position: relative;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    height: 100%;
+    margin-top: 0px;
+}
+
+.right {
+    float: right;
+}
+.left {
+    float: left;
+}
+
+button.noactive {
+    font-weight: normal;
+    color: #0e90d2;
+    background: #FFFFFF;
+    height: 40px;
+    border: none;
+}
+
+button.active {
+    font-weight: normal;
+    color: #FFFFFF;
+    background: #0e90d2;
+    height: 40px;
+}
+
+footer {
+    clear:both;
+/*    text-align: center;*/    
+    padding: 20px;
+    /*background-color: #0e90d2;*/
+    font-family: 'Berkshire Swash', cursive,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+#menu {
+    position: fixed;
+    left:0;
+    top:0;
+    width:200px;
+    height:auto;
+    background-color: #d0d0d0;
+    display: none;
+    z-index:1;
+}
+
+.rectangle-list#paramlist a{
+    margin: 0.2em 0.5em 0.2em 0.5em;
+}
+
+.rectangle-list#paramlist a:before{
+    content: none;
+    counter-increment: none;
+    position: absolute;
+    left: -2.5em;
+    top: 50%;
+    margin-top: -1em;
+    background: #dddddd;
+    height: 2em;
+    width: 2em;
+    line-height: 2em;
+    text-align: center;
+    font-weight: bold;
+}
+
+.rectangle-list#paramlist a:after {
+    position: absolute;
+    /*content: '';*/
+    border: .5em solid transparent;
+    left: -1em;
+    top: 50%;
+    margin-top: -.5em;
+    -webkit-transition: all .3s ease-out;
+    -moz-transition: all .3s ease-out;
+    -ms-transition: all .3s ease-out;
+    -o-transition: all .3s ease-out;
+    transition: all .3s ease-out;
+}

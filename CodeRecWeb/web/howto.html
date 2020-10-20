@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Code Recommendation - About </title>
+  <link type="text/css" rel="stylesheet" href="styles/howto.css">
+  <link type="text/css" rel="stylesheet" href="styles/css3-ordered-list-styles.css">
+  <link type="text/css" rel="stylesheet" href="styles/nav.css">
+  <link type="text/css" rel="stylesheet" href="styles/bootstrap.css">
+  <!--<script type="text/javascript" src="http://10.131.253.117:8089/CodeRecommendation/scripts/jquery.min.js"></script>-->
+</head>
+<body>
+<div>
+
+  <header>
+    <div class="nav" style="margin-top: 50px">
+      <h1> Code Recommendation </h1>
+      <span> -- a generative API usage code recommendation tool </span><br>
+      <span> -- version 1.0, supports JDK library in statement level recommendation.</span>
+      <span> | <a class="" href="index.html"> Tool </a> | <a class="focus" href="howto.html"> How-to-use </a> | </span>
+    </div>
+  </header>
+
+  <div id="navigation">
+  </div>
+
+  <div class="container" >
+    <div class="main">
+      <h1>About</h1>
+      <p>
+       This is a generative API usage code recommendation tool. <br>
+       The current version supports JDK library in statement level recommendation. <br>
+      </p>
+      <h2>How to use</h2>
+      <p>
+        Let us start with an example of API usage code recommendation: <br>
+        <big>First</big>, type your code in the textarea like:
+        <pre class="" id="e_c2">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+        byte[] messageByte = message.getBytes();
+        String signMode = null;
+        if(pk == null){
+            pk = getPrivateKey("RSA");
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }else{ 
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }
+
+    }
+}</pre>
+
+        The code above includes:
+        <ul> 
+          <li> import declaration that involves classes in the JDK library that have been used in the code to be completed</li>
+          <li> class declaration that the code to be completed belongs to </li>
+          <li> field declaration that the code to be completed involves </li>
+          <li> method declaration that the code to be completed belongs to </li>
+          <li> the code to be completed in the method </li>
+        </ul>
+        For example, in above code (what will be used as the context to recommend next statements), it involves 2 API classes that are "PrivateKey" and "GeneralSecurityException". Thus <b>"java.security.GeneralSecurityException"</b> and <b>"java.security.PrivateKey"</b> at line 1-2 need to be imported:<br>
+
+        <pre class="" id="e_c1" >import java.security.GeneralSecurityException;
+import java.security.PrivateKey;</pre>
+
+        And then, we add the class declaration and the method declaration as follow:<br>
+        <pre class="" id="e_c7">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+
+    }
+}</pre>
+        <span style="color:red">Note that other method declarations in this class (Demo) should not be included. For example, the method declarations and bodies of <b>"getPrivateKey"</b> and <b>"combine"</b> are not included here.</span><br> 
+        In this example there is no field declaration, but add them if any.<br>
+
+        Then, write the code in the method which can be used as the context to recommend the next statements.<br>
+        In this example, to sign a message, we need to convert the message into a byte array, specify the signature algorithm and then sign the message. And the partial implementation looks like the code at the very beginning:<br>
+       <pre class="" id="e_c8">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+        byte[] messageByte = message.getBytes();
+        String signMode = null;
+        if(pk == null){
+            pk = getPrivateKey("RSA");
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }else{ 
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }
+
+    }
+}</pre>
+        This method takes as input a message message to be signed, the name of a digesting algorithm digestAlgorithm and a private key pk. Line 5 coverts the String message into a byte array. Lines 6-14 specify the signature algorithm according to the given digesting algorithm digestAlgorithm and private key pk.<br>
+
+        After these preparation steps, it is time to sign the message. Unfortunately, we do not know how to sign the message, i.e., which API(s) we should use to complete this program.<br>
+
+        <big>Second</big>, suppose that you need our tool to give recommendations at line 15, you just need to move cursor to line 15 (or, mark line 15 as a hole $hole$) and then request recommendation by hitting the "Recommend" button: <br>
+        <pre class="" id="e_c3">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+        byte[] messageByte = message.getBytes();
+        String signMode = null;
+        if(pk == null){
+            pk = getPrivateKey("RSA");
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }else{ 
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }
+        $hole$
+    }
+}</pre>
+        The tool will infer a list of recommendations which can be filled in the $hole$ to complete this partial code, like: <br>
+        <img src="img/result.png" width="100%">
+        And the API call: <b>"Signature signature = Signature.getInstance(signMode);"</b> is exactly what we need to do in order to get the Signature object.<br>
+        Note that our tool will import the packages to the current code according to the recommendation, for example, <b>"java.security.Signature"</b> in line 3:
+        <pre class="" id="e_c4">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.Signature;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+        byte[] messageByte = message.getBytes();
+        String signMode = null;
+        if(pk == null){
+            pk = getPrivateKey("RSA");
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }else{ 
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }
+        Signature signature = Signature.getInstance(signMode);
+    }
+}</pre>
+        Of course, this line of code does not yet complete the program. We can continue to mark the next line as $hole$ and hit "Recommend" to request tool's recommendation again. <br>
+        The tool can continually recommend code <b>"signature.initSign(pk);"</b> for line 18, <b>"signature.update(messageByte);"</b>" for line 19, and <b>"byte[] byte array = signature.sign();"</b> for line 20 to successfully help us complete the program:<br>
+        <pre class="" id="e_c5">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.PublicKey;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+        byte[] messageByte = message.getBytes();
+        String signMode = null;
+        if(pk == null){
+            pk = getPrivateKey("RSA");
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }else{ 
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }
+        Signature signature = Signature.getInstance(signMode);
+        signature.initSign(pk);
+        signature.update(messageByte);
+        messageByte = signature.sign();
+        
+    }
+}</pre>
+        And remember to return the <b>"messageByte"</b> to finish this program:<br>
+        <pre class="" id="e_c6">import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.PublicKey;
+public class Demo{
+    public byte[] sign(String message, String digestAlgorithm, PrivateKey pk) throws GeneralSecurityException {
+        byte[] messageByte = message.getBytes();
+        String signMode = null;
+        if(pk == null){
+            pk = getPrivateKey("RSA");
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }else{ 
+            String encryptionAlgorithm = pk.getAlgorithm();
+            signMode = combine(encryptionAlgorithm,digestAlgorithm);
+        }
+        Signature signature = Signature.getInstance(signMode);
+        signature.initSign(pk);
+        signature.update(messageByte);
+        messageByte = signature.sign();
+        return messageByte;
+    }
+}</pre>
+      </p>
+    <div>
+  </div>
+
+  <footer>
+    <div>
+      <p>Copyright@ FDU Software Engineering Laboratory</p>
+    </div>
+  </footer>
+</div>
+
+<script src="scripts/jquery-3.3.1.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/bootstrap.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/lib/ace/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/nav.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/howto.js" type="text/javascript" charset="utf-8"></script>
+
+<!-- 
+<script type="text/javascript" src="http://10.131.253.117:8089/CodeRecommendation/scripts/controllers.js"></script>
+ -->
+</body>
+</html>

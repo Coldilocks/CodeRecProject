@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/CodeRecDataProcess/CodeRecDataProcess.iml" filepath="$PROJECT_DIR$/CodeRecDataProcess/CodeRecDataProcess.iml" />
+      <module fileurl="file://$PROJECT_DIR$/CodeRecProject.iml" filepath="$PROJECT_DIR$/CodeRecProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/CodeRecWeb/CodeRecWeb.iml" filepath="$PROJECT_DIR$/CodeRecWeb/CodeRecWeb.iml" />
+    </modules>
+  </component>
+</project>

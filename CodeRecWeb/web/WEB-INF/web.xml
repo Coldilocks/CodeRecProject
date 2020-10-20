@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+    <servlet>
+        <servlet-name>MultiRecPluginServlet</servlet-name>
+        <servlet-class>MultiRecPluginServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MultiRecPluginServlet</servlet-name>
+        <url-pattern>/MultiRecPluginServlet</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>SummaryServlet</servlet-name>
+        <servlet-class>SummaryServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SummaryServlet</servlet-name>
+        <url-pattern>/SummaryServlet</url-pattern>
+    </servlet-mapping>
+    <!-->
+<servlet>
+    <servlet-name>CodeRecommendationServlet</servlet-name>
+    <servlet-class>CodeRecommendationServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>CodeRecommendationServlet</servlet-name>
+    <url-pattern>/CodeRecommendationServlet</url-pattern>
+</servlet-mapping>
+<servlet>
+    <servlet-name>GGNNCodeRecommendationServlet</servlet-name>
+    <servlet-class>GGNNCodeRecommendationServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>GGNNCodeRecommendationServlet</servlet-name>
+    <url-pattern>/GGNNCodeRecommendationServlet</url-pattern>
+</servlet-mapping>
+<servlet>
+    <servlet-name>PluginServlet</servlet-name>
+    <servlet-class>PluginServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>PluginServlet</servlet-name>
+    <url-pattern>/PluginServlet</url-pattern>
+</servlet-mapping>
+<servlet>
+    <servlet-name>RecordServlet</servlet-name>
+    <servlet-class>RecordServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>RecordServlet</servlet-name>
+    <url-pattern>/RecordServlet</url-pattern>
+</servlet-mapping>
+<servlet>
+    <servlet-name>CheServlet</servlet-name>
+    <servlet-class>CheServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>CheServlet</servlet-name>
+    <url-pattern>/CheServlet</url-pattern>
+</servlet-mapping>
+<servlet>
+    <servlet-name>Graph2SequenceServlet</servlet-name>
+    <servlet-class>Graph2SequenceServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>Graph2SequenceServlet</servlet-name>
+    <url-pattern>/Graph2SequenceServlet</url-pattern>
+</servlet-mapping>
+-->
+</web-app>
