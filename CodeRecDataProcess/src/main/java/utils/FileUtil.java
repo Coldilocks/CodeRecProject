@@ -54,8 +54,9 @@ public class FileUtil {
         DataInputStream in = new DataInputStream(fis);
         BufferedReader d = new BufferedReader(new InputStreamReader(in, srcEncoding));
         String line = null;
-        while ((line = d.readLine()) != null)
+        while ((line = d.readLine()) != null) {
             content.append(line + line_separator);
+        }
         d.close();
         in.close();
         fis.close();

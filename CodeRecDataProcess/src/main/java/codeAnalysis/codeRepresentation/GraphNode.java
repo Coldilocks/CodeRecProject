@@ -362,6 +362,7 @@ public class GraphNode implements Cloneable, Serializable {
         this.completeClassName = completeClassName;
     }
 
+    @Override
     public String toString() {
         String str;
         if (isControl) {
@@ -389,6 +390,7 @@ public class GraphNode implements Cloneable, Serializable {
         }
     }
 
+    @Override
     public Object clone() {
         Object o = null;
         try {

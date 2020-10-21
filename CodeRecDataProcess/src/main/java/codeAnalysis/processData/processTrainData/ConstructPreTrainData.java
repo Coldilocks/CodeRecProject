@@ -18,6 +18,7 @@ public class ConstructPreTrainData extends ConstructData {
     private boolean isDebug = false;
     private LinkedList<String> predictions;
 
+    @Override
     public List<String> getAllVariableNames(Graph graph){
         graph.initAllVariables(graph.getRoot(),new ArrayList<>());
         return graph.getAllVariableNamesList();
@@ -35,6 +36,7 @@ public class ConstructPreTrainData extends ConstructData {
         return null;
     }
 
+    @Override
     public String filterSigns(String string){
         for (String sign: filterSigns) {
             string = string.replace(sign, "");
@@ -43,6 +45,7 @@ public class ConstructPreTrainData extends ConstructData {
 
     }
 
+    @Override
     public boolean isReassignHoleParent(String label){
         for(String l : holeParentAdjust){
             if(l.equals(label)){
@@ -53,6 +56,7 @@ public class ConstructPreTrainData extends ConstructData {
     }
 
     // is control node with "condition"
+    @Override
     public boolean isWithConditionNode(String label){
         for (String l: nodeWithCondition) {
             if(l.equals(label)){

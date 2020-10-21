@@ -239,8 +239,9 @@ public class GraphCreator extends GraphConverter {
         if (node != null && parsedFlag) {
             node.accept(this, null);
             try {
-                if(graph.getRoot()!=null)
+                if(graph.getRoot()!=null) {
                     GraphWriteUtil.show(graph.getRoot(),DataConfig.OUTPUT_GRAPH_PATH);
+                }
             }catch (Exception e){
                 e.printStackTrace();
             }

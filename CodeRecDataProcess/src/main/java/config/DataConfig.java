@@ -34,6 +34,7 @@ public class DataConfig {
     // 进行预测的python代码路径
     public static final String GGNN_CLIENT_PYTHON_FILE_PATH = "/ggnn/Client.py";
 
+    // 分词服务访问路径
     public static final String URL = "http://localhost:9000/?properties={%22annotators%22%3A%22tokenize%2Cssplit%2Clemma%22%2C%22outputFormat%22%3A%22json%22}";
 
     // 调试用的路径

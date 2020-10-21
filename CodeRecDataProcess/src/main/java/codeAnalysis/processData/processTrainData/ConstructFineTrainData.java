@@ -203,6 +203,7 @@ public class ConstructFineTrainData extends ConstructData {
         }
     }
 
+    @Override
     public List<String> getAllVariableNames(Graph graph){
         graph.initAllVariables(graph.getRoot(),new ArrayList<>());
         List<String> allVariableNames = graph.getAllVariableNamesList();
@@ -600,6 +601,7 @@ public class ConstructFineTrainData extends ConstructData {
     }
 
     // filter the signs
+    @Override
     public String filterSigns(String string){
         for (String sign: filterSigns) {
             string = string.replace(sign, "");
@@ -608,6 +610,7 @@ public class ConstructFineTrainData extends ConstructData {
     }
 
     // Reassign hole parent.
+    @Override
     public boolean isReassignHoleParent(String label){
         for(String l : holeParentAdjust){
             if(l.equals(label)){
@@ -618,6 +621,7 @@ public class ConstructFineTrainData extends ConstructData {
     }
 
     // is control node with "condition"
+    @Override
     public boolean isWithConditionNode(String label){
         for (String l: nodeWithCondition) {
             if(l.equals(label)){

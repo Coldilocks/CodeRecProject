@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class Graph implements Serializable {
 
-    private static final long serialVersionUID = -2205872838993746704l;
+    private static final long serialVersionUID = -2205872838993746704L;
     private GraphNode root;
     private int totalNumber = 0; // used to store the total number of nodes
     private Map<String, String> class_variable = new HashMap<String, String>();
