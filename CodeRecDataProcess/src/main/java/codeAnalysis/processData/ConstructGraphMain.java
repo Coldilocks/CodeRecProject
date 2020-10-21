@@ -15,6 +15,17 @@ import java.util.Scanner;
 public class ConstructGraphMain {
 
     public static void main(String[] args) throws Exception {
+
+        if(args.length == 0){
+            System.out.println("请指定配置文件路径");
+            System.exit(0);
+        }
+        if(!new File(args[0]).exists()){
+            System.out.printf("%s 不存在", args[0]);
+            System.exit(0);
+        } else {
+            DataConfig.loadConfig(args[0]);
+        }
         long startTime = System.currentTimeMillis();
         String globalPath = System.getProperty("user.dir");
         String outputPath = DataConfig.OUTPUT_PATH;
