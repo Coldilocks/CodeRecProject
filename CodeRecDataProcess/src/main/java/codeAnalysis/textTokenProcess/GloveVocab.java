@@ -20,7 +20,7 @@ public class GloveVocab {
 
     public GloveVocab(){
         try{
-            String path = DataConfig.gloveVocabPath;
+            String path = DataConfig.GLOVE_VOCAB_PATH;
             Scanner scanner = new Scanner(new FileReader(path));
             while (scanner.hasNextLine()) {
                 String stopWord = scanner.nextLine();

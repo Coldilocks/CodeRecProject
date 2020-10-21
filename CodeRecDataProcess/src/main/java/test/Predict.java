@@ -12,6 +12,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.VariableDeclarationExpr;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
+import config.DataConfig;
 import javafx.util.Pair;
 import utils.ConstructGraphUtil;
 import utils.JavaParserUtil;
@@ -94,8 +95,8 @@ public class Predict {
 
         }
         Runtime run = Runtime.getRuntime();
-        String[] cmd = new String[] {"python3",globalPath + "/ggnn/Client.py",nodeEdgeSet,words,variableNameSet};
-        System.out.println(globalPath + "/ggnn/Client.py");
+        String[] cmd = new String[] {"python3", DataConfig.GGNN_CLIENT_PYTHON_FILE_PATH, nodeEdgeSet,words,variableNameSet};
+        System.out.println(DataConfig.GGNN_CLIENT_PYTHON_FILE_PATH);
         System.out.println(nodeEdgeSet);
         System.out.println(words);
         System.out.println(variableNameSet);
@@ -339,7 +340,6 @@ public class Predict {
                             tempUserClassList.add(completeClassNameList.get(i));
                             userClassList.add(completeClassNameList.get(i));
                         }
-
                     }
                     //过滤掉反射不到的类
                     for (int i = 0; i < tempUserClassList.size(); i++) {

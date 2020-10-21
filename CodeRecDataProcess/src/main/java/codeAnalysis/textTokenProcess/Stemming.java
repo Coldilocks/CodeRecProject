@@ -1,6 +1,7 @@
 package codeAnalysis.textTokenProcess;
 
 import com.alibaba.fastjson.JSONObject;
+import config.DataConfig;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -12,7 +13,7 @@ public class Stemming {
         String lemma = null;
         try {
             String[] cmd = new String[] {"curl","--data",word,
-                    "http://localhost:9000/?properties={%22annotators%22%3A%22tokenize%2Cssplit%2Clemma%22%2C%22outputFormat%22%3A%22json%22}",
+                    DataConfig.URL,
                     "-o","-"};
             Runtime rt = Runtime.getRuntime();
             Process p = rt.exec(cmd);

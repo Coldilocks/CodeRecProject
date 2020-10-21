@@ -2,6 +2,7 @@ package codeAnalysis.processData.processTestData;
 import codeAnalysis.codeRepresentation.Graph;
 import codeAnalysis.codeRepresentation.GraphNode;
 import codeAnalysis.processData.ConstructData;
+import config.DataConfig;
 import javafx.util.Pair;
 import utils.FileUtil;
 import utils.GraphWriteUtil;
@@ -244,7 +245,7 @@ public class ConstructFineTestData extends ConstructData{
                     testcaseTraces.addLast(testcaseTrace);
                     if (isShowGraph) {
                         try {
-                            GraphWriteUtil.show(graph.getRoot(), "/Users/wangxin/Workspace/04-DataSpace/CodeRecommendation/GraphDataConstruct/graph/graph_" + count);
+                            GraphWriteUtil.show(graph.getRoot(), DataConfig.FINE_TEST_GRAPH_DATA_CONSTRUCT_PATH + count);
                         } catch (Exception e1) {
                             e1.printStackTrace();
                         }

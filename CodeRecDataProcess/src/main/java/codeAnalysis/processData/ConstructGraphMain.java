@@ -1,6 +1,9 @@
 package codeAnalysis.processData;
 
 import codeAnalysis.textTokenProcess.GloveVocab;
+import config.DataConfig;
+
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +17,7 @@ public class ConstructGraphMain {
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
         String globalPath = System.getProperty("user.dir");
-        String outputPath = "D:\\多行代码推荐\\GGNNData";
+        String outputPath = DataConfig.OUTPUT_PATH;
         ConstructGraph test = new ConstructGraph();
         GloveVocab gloveVocab = new GloveVocab();
         List<String> gloveVocabList = gloveVocab.getGloveList();
@@ -22,7 +25,7 @@ public class ConstructGraphMain {
         // read jdk class name
         List<String> jdkList = new ArrayList<>();
         try {
-            File fileClassNameMap = new File(globalPath + "/src/main/resources/vocab/JDKCLASS.txt");
+            File fileClassNameMap = new File(DataConfig.JDKCLASS_VOCAB_FILE_PATH);
             FileInputStream fileInputStream = new FileInputStream(fileClassNameMap);
             Scanner scanner2 = new Scanner(fileInputStream);
             while (scanner2.hasNextLine()) {
@@ -58,7 +61,7 @@ public class ConstructGraphMain {
                 traceWriter = new FileWriter(outputPath + "trace.txt", true);
             }
         }
-        String path  = "C:\\Users\\Zero\\IdeaProjects\\HelloTest\\javaFilePath.txt";
+        String path  = DataConfig.JAVA_FILE_PATH;
         FileInputStream fileInputStream = new FileInputStream(path);
         Scanner scanner2 = new Scanner(fileInputStream);
         int index = 0;

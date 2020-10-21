@@ -47,7 +47,7 @@
     <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:3.2.0" level="project" />
     <orderEntry type="library" name="Maven: edu.stanford.nlp:stanford-corenlp:models:3.8.0" level="project" />
     <orderEntry type="library" name="Maven: org.openjfx:javafx-base:14.0.1" level="project" />
-    <orderEntry type="library" name="Maven: org.openjfx:javafx-base:win:14.0.1" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-base:mac:14.0.1" level="project" />
     <orderEntry type="library" name="Maven: org.json:json:20140107" level="project" />
     <orderEntry type="library" name="Maven: net.sf.json-lib:json-lib:jdk15:2.2.3" level="project" />
     <orderEntry type="library" name="Maven: commons-beanutils:commons-beanutils:1.7.0" level="project" />

@@ -3,6 +3,7 @@ package codeAnalysis.processData.processTestData;
 import codeAnalysis.codeRepresentation.Graph;
 import codeAnalysis.codeRepresentation.GraphNode;
 import codeAnalysis.processData.ConstructData;
+import config.DataConfig;
 import javafx.util.Pair;
 import utils.ConstructGraphUtil;
 import utils.FileUtil;
@@ -234,7 +235,7 @@ public class ConstructPreTestData extends ConstructData {
                     testcaseTraces.addLast(testcaseTrace);
                     if (isShowGraph) {
                         try {
-                            GraphWriteUtil.show(graph.getRoot(), "/Users/wangxin/Workspace/01-CodeSpace/02-TempDir/GraphDataConstruct/graph/graph_" + count);
+                            GraphWriteUtil.show(graph.getRoot(), DataConfig.PRE_TEST_OR_TRAIN_GRAPH_DATA_CONSTRUCT_PATH + count);
                         } catch (Exception e1) {
                             e1.printStackTrace();
                         }
