@@ -20,8 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 public class ConstructGraph {
+
     public int linesCount = 0;
     public int test = 0;
     public List<GraphNode> parameterNodeList = new ArrayList<>();
@@ -92,15 +92,15 @@ public class ConstructGraph {
                     for (BodyDeclaration body : (NodeList<BodyDeclaration>) type.getMembers()) {
                         if (body instanceof MethodDeclaration) {
                             //int lines = countCodeLine(body);
+                            // todo: modify this code to {@code: if(((MethodDeclaration)body).getBegin().get().line - ((MethodDeclaration)body).getBegin().get().line > 100) }
                             if(((MethodDeclaration)body).getBegin().get().line - ((MethodDeclaration)body).getBegin().get().line > 100){
                                 continue;
                             }
                             int lines = 3;
                             if (lines >= 2) {
-                                List<String> completeClassNameList = new ArrayList<>();
-                                for (String str : tempList) {
-                                    completeClassNameList.add(str);
-                                }
+
+                                List<String> completeClassNameList = new ArrayList<>(tempList);
+
                                 List userClassList = new ArrayList();
                                 for (String str : javaParserUtil.getFilternames()) {
                                     userClassList.add(str);
@@ -121,10 +121,13 @@ public class ConstructGraph {
                                         String contentString = "public class Test{public void test(){$}}";
                                         String parameterString = parameterList.get(i).toString() + ";";
                                         contentString = contentString.replaceAll("\\$", parameterString);
+                                        // todo: delete this line
                                         InputStream in = new ByteArrayInputStream(contentString.getBytes());
                                         try {
+                                            // todo: modify to  {@code: CompilationUnit compilationUnit = StaticJavaParser.parse(contentString);}
                                             CompilationUnit compilationUnit = StaticJavaParser.parse(in);
                                             Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
+                                            // todo: modify to {@code: ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(3).getChildNodes().get(0);}
                                             ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(1).getChildNodes().get(0);
                                             parameterExpressionList.add(expression);
                                         } catch (Exception e) {
@@ -141,6 +144,7 @@ public class ConstructGraph {
                                 List<String> tempUserClassList = new ArrayList<>();
                                 for (int i = 0; i < completeClassNameList.size(); i++) {
                                     try {
+                                        /* 判断是JDK中的类还是用户自定义类 */
                                         Class clazz = Thread.currentThread().getContextClassLoader().loadClass(completeClassNameList.get(i));
                                         if (jdkList.contains(completeClassNameList.get(i))) {
                                             creator.getClass_name_map().put(clazz.getSimpleName(), completeClassNameList.get(i));
@@ -148,7 +152,7 @@ public class ConstructGraph {
                                             tempUserClassList.add(completeClassNameList.get(i));
                                             userClassList.add(completeClassNameList.get(i));
                                         }
-                                    } catch (Exception e) {
+                                    } catch (Exception e) { // todo: modify to {@code: catch (Exception | Error e) }
                                         tempUserClassList.add(completeClassNameList.get(i));
                                         userClassList.add(completeClassNameList.get(i));
                                     } catch (Error e) {
@@ -159,9 +163,10 @@ public class ConstructGraph {
 
                                 }
                                 //过滤掉反射不到的类
-                                for (int i = 0; i < tempUserClassList.size(); i++) {
-                                    completeClassNameList.remove(tempUserClassList.get(i));
+                                for (String s : tempUserClassList) {
+                                    completeClassNameList.remove(s);
                                 }
+                                // todo: why called on itself?
                                 tempUserClassList.removeAll(tempUserClassList);
                                 //处理field
                                 for (int i = 0; i < fieldExpressionList.size(); i++) {

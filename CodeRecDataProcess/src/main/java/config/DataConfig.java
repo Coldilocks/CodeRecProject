@@ -38,7 +38,7 @@ public class DataConfig {
     public static String URL = "";
 
     // 输入的Java文件（测试用）
-    public static String TEST_INPUT_JAVA_FILE = "/Users/coldilock/Downloads/CodeRec Project/input/api1.java";
+    public static String TEST_INPUT_JAVA_FILE = "/Users/coldilock/Downloads/CodeRec Project/input/api2.java";
 
     // 输出的图（测试用）
     public static String TEST_OUTPUT_GRAPH_PATH = "/Users/coldilock/Downloads/CodeRec Project/Test/2.dot";

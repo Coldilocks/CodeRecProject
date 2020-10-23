@@ -1398,9 +1398,10 @@ public class GraphCreator extends GraphConverter {
                 type1 = strs[strs.length - 1];
                 type2 = type1;
             }
+            // todo: why check on @code: {contains("[")} ?
             if (n.getVariables().get(i).getName().toString().contains("[")) {
                 int index = n.getVariables().get(i).getName().toString().indexOf("[");
-                String str = n.getVariables().get(i).getName().toString().substring(index, n.getVariables().get(i).getName().toString().length());
+                String str = n.getVariables().get(i).getName().toString().substring(index);
                 class_variable.put(n.getVariables().get(i).getName().toString(), type1 + str);
                 variableName = n.getVariables().get(i).getName().toString();
                 variable_line_map.put(n.getVariables().get(i).getName().toString(), n.getEnd().get().line);

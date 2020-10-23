@@ -41,7 +41,7 @@ public class JavaParserUtil {
         add2List(packages, "java.lang");// java会自动引入java.lang包
         CompilationUnit result = cu;
         result.accept(new MyVisitor(), null);
-        return  handleNames(names, packages);
+        return handleNames(names, packages);
     }
 
     /**

@@ -27,8 +27,8 @@ public class UserClassProcessing {
 
     public boolean isUserClassProcessing(String type) {
         if(type != null) {
-            type = type.replaceAll("\\[\\]", "");
-            if(type.equals("null")){
+            type = type.replaceAll("\\[]", "");
+            if("null".equals(type)){
                 return true;
             }
             for (int i = 0; i < userClassList.size(); i++) {
@@ -41,11 +41,8 @@ public class UserClassProcessing {
             }
             String[] simpleTypes = type.split("\\.");
             String simpleType = simpleTypes[simpleTypes.length - 1];
-            if(!jdkList.contains(type) && !jdkList.contains(simpleType)){
-                return true;
-            }else{
-                return false;
-            }
+
+            return !jdkList.contains(type) && !jdkList.contains(simpleType);
         }else{
             return true;
         }
