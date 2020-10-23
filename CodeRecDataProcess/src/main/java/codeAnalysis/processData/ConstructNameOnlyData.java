@@ -4,6 +4,7 @@ import codeAnalysis.codeRepresentation.Graph;
 import codeAnalysis.codeRepresentation.GraphNode;
 import utils.ConstructGraphUtil;
 import utils.FileUtil;
+import utils.FileWriterUtil;
 
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -38,25 +39,9 @@ public class ConstructNameOnlyData {
 
     private ConstructGraphUtil util = new ConstructGraphUtil();
 
-    public ConstructNameOnlyData() {
-    }
+    public ConstructNameOnlyData() { }
 
-    public void construct(Graph graph,
-                          FileWriter graphWriter,
-                          FileWriter predictionWriter,
-                          FileWriter classWriter,
-                          FileWriter generationNodeWriter,
-                          FileWriter graphSentenceWriter,
-                          FileWriter jarWriter,
-                          FileWriter holeSizeWriter,
-                          FileWriter traceWriter, // trace back
-                          FileWriter blockpredictionWriter, // block of predictions (more lines)
-                          FileWriter originalStatementsWriter, // original statements
-                          FileWriter variableNamesWriter,// variable names
-                          FileWriter linesWriter,// lines writer
-                          FileWriter vocabWriter,
-                          FileWriter methodNamesWriter,
-                          boolean isCompleteFlag){
+    public void construct(Graph graph, boolean isCompleteFlag){
         LinkedList<LinkedList> result = getConstructTrainingData(graph);
         List<Graph> graphList = result.get(0);
         List<String> predictionList = result.get(1);
@@ -74,24 +59,24 @@ public class ConstructNameOnlyData {
             try {
                 Graph tempGraph = graphList.get(i);
 
-                FileUtil.saveStringInFile(predictionList.get(i), predictionWriter);
-                FileUtil.saveStringInFile(classList.get(i), classWriter);
+                FileUtil.saveStringInFile(predictionList.get(i), FileWriterUtil.predictionWriter);
+                FileUtil.saveStringInFile(classList.get(i), FileWriterUtil.classWriter);
                 int parentnum = generationNodeList.get(i).getSerialNumber();
-                FileUtil.saveStringInFile(parentnum + " " + ((parentnum != 0) ? generationNodeList.get(i).getCompleteMethodDeclaration() : ""), generationNodeWriter);
+                FileUtil.saveStringInFile(parentnum + " " + ((parentnum != 0) ? generationNodeList.get(i).getCompleteMethodDeclaration() : ""), FileWriterUtil.generationNodeWriter);
 
-                FileUtil.saveStringInFile("[[1,4,1]]", graphSentenceWriter);// 记录图表示
-                FileUtil.saveStringInFile("{1:'unknown'}", vocabWriter);// 记录词汇表
+                FileUtil.saveStringInFile("[[1,4,1]]", FileWriterUtil.graphSentenceWriter);// 记录图表示
+                FileUtil.saveStringInFile("{1:'unknown'}", FileWriterUtil.vocabWriter);// 记录词汇表
 
-                FileUtil.saveStringInFile(holeSizeList.get(i), holeSizeWriter);
+                FileUtil.saveStringInFile(holeSizeList.get(i), FileWriterUtil.holeSizeWriter);
 
-                FileUtil.saveStringInFile(graph.getFunctionTrace(), traceWriter);
-                FileUtil.saveStringInFile(blockpredictionList.get(i), blockpredictionWriter);
+                FileUtil.saveStringInFile(graph.getFunctionTrace(), FileWriterUtil.traceWriter);
+                FileUtil.saveStringInFile(blockpredictionList.get(i), FileWriterUtil.blockpredictionWriter);
 
-                FileUtil.saveStringInFile(originalStatementsList.get(i), originalStatementsWriter);
-                FileUtil.saveStringInFile(variableNameList.get(i), variableNamesWriter);
+                FileUtil.saveStringInFile(originalStatementsList.get(i), FileWriterUtil.originalStatementsWriter);
+                FileUtil.saveStringInFile(variableNameList.get(i), FileWriterUtil.variableNamesWriter);
 
-                FileUtil.saveStringInFile("-1" + "", linesWriter);
-                FileUtil.saveStringInFile(methodNameList.get(i), methodNamesWriter);
+                FileUtil.saveStringInFile("-1" + "", FileWriterUtil.linesWriter);
+                FileUtil.saveStringInFile(methodNameList.get(i), FileWriterUtil.methodNamesWriter);
             } catch (Exception e) {
                 //System.err.println(e.getMessage());
             } catch (Error e){

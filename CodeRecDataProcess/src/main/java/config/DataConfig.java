@@ -8,34 +8,34 @@ import java.util.Properties;
 public class DataConfig {
 
     // 输入的Java文件路径
-    public static String JAVA_FILE_PATH = "";
+    public static String JAVA_FILE_PATH;
 
     // 输出文件
-    public static String OUTPUT_PATH = "";
+    public static String OUTPUT_PATH;
 
     // JDK Class Vocab
-    public static String JDKCLASS_VOCAB_FILE_PATH = "";
+    public static String JDKCLASS_VOCAB_FILE_PATH;
 
     // glove词表
-    public static String GLOVE_VOCAB_PATH = "";
+    public static String GLOVE_VOCAB_PATH;
 
     // 常用停用词表
-    public static String STOP_WORDS_PATH = "";
+    public static String STOP_WORDS_PATH;
 
     // class_name_map配置文件
-    public static String CLASS_NAME_MAP_CONFIG_FILE_PATH = "";
+    public static String CLASS_NAME_MAP_CONFIG_FILE_PATH;
 
     // type_cast配置文件
-    public static String TYPE_CAST_CONFIG_FILE_PATH = "";
+    public static String TYPE_CAST_CONFIG_FILE_PATH;
 
     // 输出的graph.txt路径
-    public static String OUTPUT_GRAPH_PATH = "";
+    public static String OUTPUT_GRAPH_PATH;
 
     // 进行预测的python代码路径
-    public static String GGNN_CLIENT_PYTHON_FILE_PATH = "";
+    public static String GGNN_CLIENT_PYTHON_FILE_PATH;
 
     // 分词服务访问路径
-    public static String URL = "";
+    public static String URL;
 
     // 输入的Java文件（测试用）
     public static String TEST_INPUT_JAVA_FILE = "/Users/coldilock/Downloads/CodeRec Project/input/api2.java";
@@ -56,22 +56,17 @@ public class DataConfig {
      */
     public static void loadConfig(String configFile){
         try{
-            if(new File(configFile).exists()){
-                properties.load(new FileReader(configFile));
-                JAVA_FILE_PATH = properties.getProperty("javaFilePath");
-                OUTPUT_PATH = properties.getProperty("outputPath");
-                JDKCLASS_VOCAB_FILE_PATH = properties.getProperty("JDKClassVocab");
-                GLOVE_VOCAB_PATH = properties.getProperty("gloveVocab");
-                STOP_WORDS_PATH = properties.getProperty("stopWords");
-                CLASS_NAME_MAP_CONFIG_FILE_PATH = properties.getProperty("classNameMap");
-                TYPE_CAST_CONFIG_FILE_PATH = properties.getProperty("typeCast");
-                OUTPUT_GRAPH_PATH = properties.getProperty("outputGraphPath");
-                GGNN_CLIENT_PYTHON_FILE_PATH = properties.getProperty("ggnnClient");
-                URL = properties.getProperty("url");
-            } else {
-                System.out.println("请修改配置文件config.properties");
-                System.exit(0);
-            }
+            properties.load(new FileReader(configFile));
+            JAVA_FILE_PATH = properties.getProperty("javaFilePath");
+            OUTPUT_PATH = properties.getProperty("outputPath");
+            JDKCLASS_VOCAB_FILE_PATH = properties.getProperty("JDKClassVocab");
+            GLOVE_VOCAB_PATH = properties.getProperty("gloveVocab");
+            STOP_WORDS_PATH = properties.getProperty("stopWords");
+            CLASS_NAME_MAP_CONFIG_FILE_PATH = properties.getProperty("classNameMap");
+            TYPE_CAST_CONFIG_FILE_PATH = properties.getProperty("typeCast");
+            OUTPUT_GRAPH_PATH = properties.getProperty("outputGraphPath");
+            GGNN_CLIENT_PYTHON_FILE_PATH = properties.getProperty("ggnnClient");
+            URL = properties.getProperty("url");
         } catch (IOException e){
             System.exit(0);
         }

@@ -33,19 +33,19 @@ public class GraphCreator extends GraphConverter {
     private Map<String, Boolean> castMap = new HashMap<>();
     private Map<String, Integer> variable_line_map = new HashMap<>();
     private Map<String, Integer> variable_use_map = new HashMap<>();
-    private boolean parsedFlag = true;// this field is used to judge whether the method can be correctly parsed
+    private boolean parsedFlag = true; // this field is used to judge whether the method can be correctly parsed
     private String returnType = null;
     private List<String> starImportStringList = new ArrayList<>();
     //private boolean endFlag.endFlag = true;
     private boolean holeFlag = false;
     private GraphNode endParentNode = null;
     private Map<String, List<GraphNode>> variableNodeMap = new HashMap<>();
-    private String globalStatement = null;//用来记录原始语句
-    private String globalVariableName = null;//用来记录当前结点的变量名（针对是变量声明结点）
+    private String globalStatement = null; //用来记录原始语句
+    private String globalVariableName = null; //用来记录当前结点的变量名（针对是变量声明结点）
     private String globalType = null;
     private boolean globalFlag = true;
-    private List<String> commentList = new ArrayList<>();//用来保存注释信息
-    private List<String> allClassFieldAndMethodArgumentVariable = new ArrayList<>();//用来存放函数声明中的变量和类属性变量
+    private List<String> commentList = new ArrayList<>(); //用来保存注释信息
+    private List<String> allClassFieldAndMethodArgumentVariable = new ArrayList<>(); //用来存放函数声明中的变量和类属性变量
     private List<String> jdkList = new ArrayList<>();
     private GraphNode holeParentNode = null;
     private List<GraphNode> removeList = new ArrayList<>();
@@ -84,11 +84,14 @@ public class GraphCreator extends GraphConverter {
         return usedClassFieldAndMethodArgumentVariable;
     }
 
-    private List<String> usedClassFieldAndMethodArgumentVariable = new ArrayList<>();//用来存放被用到的函数声明中的变量和类属性变量
-    // next node should be added
-    // twice time (false and
-    // true separately)
-    private boolean elseIfFlag = false;//used to judge whether a node is a else if node
+    /** 用来存放被用到的函数声明中的变量和类属性变量*/
+    private List<String> usedClassFieldAndMethodArgumentVariable = new ArrayList<>();
+
+    /** next node should be added
+     *  twice time (false and
+     *  true separately)
+     */
+    private boolean elseIfFlag = false; //used to judge whether a node is a else if node
 
     public Map<String, List<GraphNode>> getVariableNodeMap() {
         return variableNodeMap;
@@ -149,9 +152,7 @@ public class GraphCreator extends GraphConverter {
     }
 
     public void addClass_name_map(String type) {
-        if (class_name_map.get(type) == null) {
-            class_name_map.put(type, type);
-        }
+        class_name_map.putIfAbsent(type, type);
     }
 
     public GraphCreator(String globalPath) {
@@ -198,9 +199,7 @@ public class GraphCreator extends GraphConverter {
             }
 
         }
-        for (int i = 0; i < class_variable_list.size(); i++) {
-            allClassFieldAndMethodArgumentVariable.add(class_variable_list.get(i));
-        }
+        allClassFieldAndMethodArgumentVariable.addAll(class_variable_list);
 
         try {
             File fileTypeCast = new File(DataConfig.TYPE_CAST_CONFIG_FILE_PATH);
@@ -1352,6 +1351,7 @@ public class GraphCreator extends GraphConverter {
             str = str.replaceAll(" ", "");
             if ((str.startsWith("/*hole*/") || str.startsWith("//hole")) && holeFlag && !stopFlag) {
                 stopFlag = true;
+                // todo: modify to @Code: if (graph.getRoot() == null || graph.getHoleNode(new ArrayList<>()) == null)
                 if ((graph.getRoot() != null && graph.getHoleNode(new ArrayList<>()) == null) || graph.getRoot() == null) {
                     GraphNode tempNode = lastNode;
                     GraphNode node = new GraphNode();
@@ -1427,18 +1427,18 @@ public class GraphCreator extends GraphConverter {
                     type2 = type2.substring(0, index);
                 }
             }
-            String str = type3.replaceAll("\\[\\]", "");
+            String str = type3.replaceAll("\\[]", "");
             if (class_name_map.get(n.getCommonType().toString()) == null && !jdkList.contains(str)) {
                 if (n.getCommonType().toString().contains("<")) {
                     class_name_map.put(n.getCommonType().toString(), class_name_map.get(type2));
-                    String temp = n.getCommonType().toString().replaceAll("\\<\\>", "");
+                    String temp = n.getCommonType().toString().replaceAll("<>", "");
                     if (class_name_map.get(temp) == null) {
                         userClassProcessing.addUserClass(n.getCommonType().toString());
                         userClassProcessing.addUserClass(temp);
                     }
                 } else if (n.getCommonType().toString().contains("[")) {
                     class_name_map.put(n.getCommonType().toString(), n.getCommonType().toString());
-                    String temp = n.getCommonType().toString().replaceAll("\\[\\]", "");
+                    String temp = n.getCommonType().toString().replaceAll("\\[]", "");
                     if (class_name_map.get(temp) == null) {
                         userClassProcessing.addUserClass(n.getCommonType().toString());
                         userClassProcessing.addUserClass(temp);
@@ -1461,7 +1461,7 @@ public class GraphCreator extends GraphConverter {
             String bracket = "";
             if (type1.contains("[")) {
                 int index = type1.indexOf("[");
-                bracket = type1.substring(index, type1.length());
+                bracket = type1.substring(index);
             }
             setGlobalStatementAndVariable((n.getBegin().isPresent()? n.getBegin().get().line : 0) + " " + n.toString(), variableName, class_name_map.get(type2) + bracket);
             setNodeStatementAndVariable(node);

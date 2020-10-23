@@ -26,18 +26,9 @@ public class ConstructGraph {
     public int test = 0;
     public List<GraphNode> parameterNodeList = new ArrayList<>();
 
-    public void constructGraph(int count, String filePath, boolean isFilePath, List<String> jdkList, ObjectOutputStream graphWriter, FileWriter traceWriter, boolean holeFlag, String globalPath,
-                               List<String> gloveVocabList, List<String> stopWordsList,
-                               FileWriter predictionWriter, FileWriter graphSentenceWriter, FileWriter vocabWriter,
-                               FileWriter classWriter,
-                               FileWriter generationNodeWriter,
-                               FileWriter holeSizeWriter,
-                               FileWriter blockpredictionWriter, // block of predictions (more lines)
-                               FileWriter originalStatementsWriter, // original statements
-                               FileWriter variableNamesWriter,// variable names
-                               FileWriter linesWriter,// lines writer
-                               FileWriter methodNamesWriter
-    ) {
+    public void constructGraph(int count, String filePath, boolean isFilePath,
+                               List<String> jdkList, boolean holeFlag, String globalPath,
+                               List<String> gloveVocabList, List<String> stopWordsList) {
         JavaParserUtil javaParserUtil = new JavaParserUtil(true);
         List<String> tempList = new ArrayList<>();
         CompilationUnit cu = new CompilationUnit();
@@ -52,7 +43,9 @@ public class ConstructGraph {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        //如果Import的包中带有*号，那么得到含有*号的这个import
+        /** 如果Import的包中带有*号，那么得到含有*号的这个import
+         * todo: 改成visitor模式
+         */
         List importList = cu.getImports();
         List<String> starImportStringList = new ArrayList<>();
         if (importList != null) {
@@ -100,11 +93,8 @@ public class ConstructGraph {
                             if (lines >= 2) {
 
                                 List<String> completeClassNameList = new ArrayList<>(tempList);
+                                List<String> userClassList = new ArrayList<>(javaParserUtil.getFilternames());
 
-                                List userClassList = new ArrayList();
-                                for (String str : javaParserUtil.getFilternames()) {
-                                    userClassList.add(str);
-                                }
                                 UserClassProcessing userClassProcessing = new UserClassProcessing();
                                 userClassProcessing.setUserClassList(userClassList);
                                 userClassProcessing.setJdkList(jdkList);
@@ -169,12 +159,12 @@ public class ConstructGraph {
                                 // todo: why called on itself?
                                 tempUserClassList.removeAll(tempUserClassList);
                                 //处理field
-                                for (int i = 0; i < fieldExpressionList.size(); i++) {
-                                    creator.convert(fieldExpressionList.get(i));
+                                for (VariableDeclarationExpr variableDeclarationExpr : fieldExpressionList) {
+                                    creator.convert(variableDeclarationExpr);
                                 }
                                 //处理method中的parameter
-                                for (int i = 0; i < parameterExpressionList.size(); i++) {
-                                    creator.convert(parameterExpressionList.get(i));
+                                for (ExpressionStmt expressionStmt : parameterExpressionList) {
+                                    creator.convert(expressionStmt);
                                 }
                                 /*get code tree from japa parse*/
                                 Graph graph = constructGraphFromAST(completeClassNameList, parameterNameList, typeMapList,
@@ -202,11 +192,11 @@ public class ConstructGraph {
                                     graph.setLineCount(lines);
                                     linesCount += lines;
                                     ConstructFineTrainData constructFineTrainData = new ConstructFineTrainData();
-                                    constructFineTrainData.construct(graph, null, predictionWriter, classWriter, generationNodeWriter, graphSentenceWriter, null, holeSizeWriter, traceWriter, blockpredictionWriter, originalStatementsWriter, variableNamesWriter, linesWriter, vocabWriter, methodNamesWriter,true);
+                                    constructFineTrainData.construct(graph, true);
                                     ConstructPreTrainData constructPreTrainData = new ConstructPreTrainData();
-                                    constructPreTrainData.construct(graph, null, predictionWriter, classWriter, generationNodeWriter, graphSentenceWriter, null, holeSizeWriter, traceWriter, blockpredictionWriter, originalStatementsWriter, variableNamesWriter, linesWriter, vocabWriter, methodNamesWriter,true);
+                                    constructPreTrainData.construct(graph,true);
                                     ConstructNameOnlyData constructNameOnlyData = new ConstructNameOnlyData();
-                                    constructNameOnlyData.construct(graph, null, predictionWriter, classWriter, generationNodeWriter, graphSentenceWriter, null, holeSizeWriter, traceWriter, blockpredictionWriter, originalStatementsWriter, variableNamesWriter, linesWriter, vocabWriter, methodNamesWriter,true);
+                                    constructNameOnlyData.construct(graph, true);
                                 }
                             }
                         }
