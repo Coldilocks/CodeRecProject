@@ -247,7 +247,7 @@ public class Predict {
                         completeClassNameList.add(str);
                     }
                     List userClassList = new ArrayList();
-                    for (String str : JavaParserUtil.getFilterNames()) {
+                    for (String str : JavaParserUtil.getUserDefinedClassNames()) {
                         userClassList.add(str);
                     }
                     UserClassProcessing userClassProcessing = new UserClassProcessing();

@@ -96,7 +96,7 @@ public class ConstructGraph {
                             if (lines >= 2) {
 
                                 List<String> completeClassNameList = new ArrayList<>(tempList);
-                                List<String> userClassList = new ArrayList<>(javaParserUtil.getFilterNames());
+                                List<String> userClassList = new ArrayList<>(javaParserUtil.getUserDefinedClassNames());
                                 UserClassProcessing userClassProcessing = new UserClassProcessing();
                                 userClassProcessing.setUserClassList(userClassList);
                                 userClassProcessing.setJdkList(jdkList);
