@@ -160,7 +160,7 @@ public class Predict {
                 InputStream in = new ByteArrayInputStream(filePath.getBytes());
                 cu = StaticJavaParser.parse(in);
             }
-            tempList = JavaParserUtil.parse(cu);
+            tempList = new ArrayList<>(JavaParserUtil.parse(cu));
         } catch (Exception e) {
             List<Graph> result = new ArrayList<>();
             result.add(null);
@@ -247,7 +247,7 @@ public class Predict {
                         completeClassNameList.add(str);
                     }
                     List userClassList = new ArrayList();
-                    for (String str : JavaParserUtil.getFilternames()) {
+                    for (String str : JavaParserUtil.getFilterNames()) {
                         userClassList.add(str);
                     }
                     UserClassProcessing userClassProcessing = new UserClassProcessing();
@@ -315,10 +315,10 @@ public class Predict {
                         }
                     }
                     /*添加类中的成员变量*/
-                    GraphCreator creator = new GraphCreator(globalPath);
+                    GraphCreator creator = new GraphCreator();
                     creator.setUserClassProcessing(userClassProcessing);
                     creator.setStarImportStringList(starImportStringList);
-                    GraphCreator creator2 = new GraphCreator(globalPath);
+                    GraphCreator creator2 = new GraphCreator();
                     creator2.setUserClassProcessing(userClassProcessing);
                     creator2.setStarImportStringList(starImportStringList);
                     List<String> tempUserClassList = new ArrayList<>();
@@ -415,7 +415,7 @@ public class Predict {
                                                   boolean holeFlag, String globalPath, List<String> jdkList,
                                                   List<String> gloveVocabList, List<String> stopWordsList) {
         try {
-            GraphCreator creator = new GraphCreator(completeClassNameList, fieldCreator, globalPath, jdkList);
+            GraphCreator creator = new GraphCreator(completeClassNameList, fieldCreator, jdkList);
             creator.setHoleFlag(holeFlag);
             for (int i = 0; i < parameterNameList.size(); i++) {
                 creator.addClass_variable_list(parameterNameList.get(i));

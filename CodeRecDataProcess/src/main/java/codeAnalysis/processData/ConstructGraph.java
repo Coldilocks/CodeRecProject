@@ -8,6 +8,7 @@ import codeAnalysis.processData.processTrainData.ConstructFineTrainData;
 import codeAnalysis.processData.processTrainData.ConstructPreTrainData;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
@@ -27,7 +28,7 @@ public class ConstructGraph {
     public List<GraphNode> parameterNodeList = new ArrayList<>();
 
     public void constructGraph(int count, String filePath, boolean isFilePath,
-                               List<String> jdkList, boolean holeFlag, String globalPath,
+                               List<String> jdkList, boolean holeFlag,
                                List<String> gloveVocabList, List<String> stopWordsList) {
         JavaParserUtil javaParserUtil = new JavaParserUtil(true);
         List<String> tempList = new ArrayList<>();
@@ -39,14 +40,14 @@ public class ConstructGraph {
                 InputStream in = new ByteArrayInputStream(filePath.getBytes());
                 cu = StaticJavaParser.parse(in);
             }
-            tempList = javaParserUtil.parse(cu);
+            tempList = new ArrayList<>(javaParserUtil.parse(cu));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        /** 如果Import的包中带有*号，那么得到含有*号的这个import
+        /* 如果Import的包中带有*号，那么得到含有*号的这个import
          * todo: 改成visitor模式
          */
-        List importList = cu.getImports();
+        List<ImportDeclaration> importList = cu.getImports();
         List<String> starImportStringList = new ArrayList<>();
         if (importList != null) {
             for (Object o : importList) {
@@ -73,7 +74,7 @@ public class ConstructGraph {
                             FieldDeclaration field = (FieldDeclaration) body;
                             for (int i = 0; i < field.getVariables().size(); i++) {
                                 VariableDeclarationExpr expr = new VariableDeclarationExpr();
-                                NodeList list = new NodeList();
+                                NodeList<VariableDeclarator> list = new NodeList<>();
                                 list.add(field.getVariables().get(i));
                                 expr.setAllTypes(field.getCommonType());
                                 expr.setVariables(list);
@@ -84,17 +85,18 @@ public class ConstructGraph {
                     //处理method
                     for (BodyDeclaration body : (NodeList<BodyDeclaration>) type.getMembers()) {
                         if (body instanceof MethodDeclaration) {
-                            //int lines = countCodeLine(body);
-                            // todo: modify this code to {@code: if(((MethodDeclaration)body).getBegin().get().line - ((MethodDeclaration)body).getBegin().get().line > 100) }
-                            if(((MethodDeclaration)body).getBegin().get().line - ((MethodDeclaration)body).getBegin().get().line > 100){
-                                continue;
-                            }
-                            int lines = 3;
+//                            int lines = countCodeLine(body);
+                            MethodDeclaration _methodDeclaration = (MethodDeclaration) body;
+                            int beginLine = _methodDeclaration.getBegin().isPresent() ? _methodDeclaration.getBegin().get().line: 0;
+                            int endLine = _methodDeclaration.getEnd().isPresent() ? _methodDeclaration.getEnd().get().line: 0;
+                            int lines = endLine - beginLine;
+//                            if(lines > 100){
+//                                continue;
+//                            }
                             if (lines >= 2) {
 
                                 List<String> completeClassNameList = new ArrayList<>(tempList);
-                                List<String> userClassList = new ArrayList<>(javaParserUtil.getFilternames());
-
+                                List<String> userClassList = new ArrayList<>(javaParserUtil.getFilterNames());
                                 UserClassProcessing userClassProcessing = new UserClassProcessing();
                                 userClassProcessing.setUserClassList(userClassList);
                                 userClassProcessing.setJdkList(jdkList);
@@ -128,7 +130,7 @@ public class ConstructGraph {
                                     }
                                 }
                                 /*添加类中的成员变量*/
-                                GraphCreator creator = new GraphCreator(globalPath);
+                                GraphCreator creator = new GraphCreator();
                                 creator.setUserClassProcessing(userClassProcessing);
                                 creator.setStarImportStringList(starImportStringList);
                                 List<String> tempUserClassList = new ArrayList<>();
@@ -142,11 +144,7 @@ public class ConstructGraph {
                                             tempUserClassList.add(completeClassNameList.get(i));
                                             userClassList.add(completeClassNameList.get(i));
                                         }
-                                    } catch (Exception e) { // todo: modify to {@code: catch (Exception | Error e) }
-                                        tempUserClassList.add(completeClassNameList.get(i));
-                                        userClassList.add(completeClassNameList.get(i));
-                                    } catch (Error e) {
-                                        //System.err.println(e.getCause());
+                                    } catch (Exception | Error e) {
                                         tempUserClassList.add(completeClassNameList.get(i));
                                         userClassList.add(completeClassNameList.get(i));
                                     }
@@ -168,7 +166,7 @@ public class ConstructGraph {
                                 }
                                 /*get code tree from japa parse*/
                                 Graph graph = constructGraphFromAST(completeClassNameList, parameterNameList, typeMapList,
-                                        completeTypeMapList, starImportStringList, method, creator, userClassProcessing, holeFlag, globalPath, jdkList,
+                                        completeTypeMapList, starImportStringList, method, creator, userClassProcessing, holeFlag, jdkList,
                                         gloveVocabList, stopWordsList);
                                 if (graph != null && graph.getRoot() != null) {
                                     String functionTrace = method.getName().toString();
@@ -210,10 +208,10 @@ public class ConstructGraph {
                                        List<String> typeMapList, List<String> completeTypeMapList,
                                        List<String> starImportStringList, MethodDeclaration method,
                                        GraphCreator fieldCreator, UserClassProcessing userClassProcessing,
-                                       boolean holeFlag, String globalPath, List<String> jdkList,
+                                       boolean holeFlag, List<String> jdkList,
                                        List<String> gloveVocabList, List<String> stopWordsList) {
         try {
-            GraphCreator creator = new GraphCreator(completeClassNameList, fieldCreator, globalPath, jdkList);
+            GraphCreator creator = new GraphCreator(completeClassNameList, fieldCreator, jdkList);
             creator.setHoleFlag(holeFlag);
             for (int i = 0; i < parameterNameList.size(); i++) {
                 creator.addClass_variable_list(parameterNameList.get(i));
@@ -273,10 +271,7 @@ public class ConstructGraph {
             } else {
                 return null;
             }
-        } catch (Exception e) {
-            //e.printStackTrace();
-            return null;
-        } catch (Error e) {
+        } catch (Exception | Error e) {
             //e.printStackTrace();
             return null;
         }
@@ -287,11 +282,11 @@ public class ConstructGraph {
         if (node instanceof Statement && !(node instanceof BlockStmt)) {
             result += 1;
             if (node instanceof IfStmt) {
-                if (((IfStmt) node).getElseStmt() != null && !(((IfStmt) node).getElseStmt().get() instanceof IfStmt)) {
+                if (((IfStmt) node).getElseStmt().isPresent() && !(((IfStmt) node).getElseStmt().get() instanceof IfStmt)) {
                     result += 1;
                 }
             } else if (node instanceof TryStmt) {
-                if (((TryStmt) node).getFinallyBlock() != null) {
+                if (((TryStmt) node).getFinallyBlock().isPresent()) {
                     result += 1;
                 }
             }
@@ -306,187 +301,188 @@ public class ConstructGraph {
         return result;
     }
 
-    public Graph getTestGraph(int count, String filePath, boolean isFilePath, List<String> jdkList, ObjectOutputStream graphWriter, FileWriter traceWriter, boolean holeFlag, String globalPath,
-                              List<String> gloveVocabList, List<String> stopWordsList) {
-        Graph result;
-        JavaParserUtil javaParserUtil = new JavaParserUtil(true);
-        List<String> tempList = new ArrayList<>();
-        CompilationUnit cu = new CompilationUnit();
-        try {
-            if (isFilePath) {
-                cu = StaticJavaParser.parse(new File(filePath));
-            } else {
-                InputStream in = new ByteArrayInputStream(filePath.getBytes());
-                cu = StaticJavaParser.parse(in);
-            }
-            tempList = javaParserUtil.parse(cu);
-        } catch (Exception e) {
-
-        } catch (Error e) {
-
-        }
-        //如果Import的包中带有*号，那么得到含有*号的这个import
-        List importList = cu.getImports();
-        List<String> starImportStringList = new ArrayList<>();
-        if (importList != null) {
-            for (int i = 0; i < importList.size(); i++) {
-                if (importList.get(i).toString().contains("*")) {
-                    String str = importList.get(i).toString();
-                    int index = str.indexOf("import");
-                    str = str.substring(index);
-                    String[] strs = str.split(" ");
-                    str = strs[strs.length - 1];//得到Import的包的信息
-                    str = str.replace(" ", ""); //替换掉空格" "
-                    str = str.replace(";", ""); //去除;
-                    starImportStringList.add(str);
-                }
-            }
-        }
-        //开始分析程序
-        if (cu.getTypes() != null) {
-            for (TypeDeclaration type : cu.getTypes()) {
-                if (type instanceof ClassOrInterfaceDeclaration) {
-                    //处理field
-                    List<VariableDeclarationExpr> fieldExpressionList = new ArrayList<>();
-                    for (BodyDeclaration body : (NodeList<BodyDeclaration>)type.getMembers()) {
-                        if (body instanceof FieldDeclaration) {
-                            FieldDeclaration field = (FieldDeclaration) body;
-                            for (int i = 0; i < field.getVariables().size(); i++) {
-                                VariableDeclarationExpr expr = new VariableDeclarationExpr();
-                                NodeList list = new NodeList();
-                                list.add(field.getVariables().get(i));
-                                expr.setAllTypes(field.getCommonType());
-                                expr.setVariables(list);
-                                fieldExpressionList.add(expr);
-                            }
-                        }
-                    }
-                    //处理method
-                    for (BodyDeclaration body : (NodeList<BodyDeclaration>)type.getMembers()) {
-                        if (body instanceof MethodDeclaration) {
-                            int lines = countCodeLine(body);
-                            if (lines >= 2) {
-                                List<String> completeClassNameList = new ArrayList<>();
-                                for (String str : tempList) {
-                                    completeClassNameList.add(str);
-                                }
-                                List userClassList = new ArrayList();
-                                JavaParserUtil javaParserUtil1 = new JavaParserUtil();
-                                for (String str : javaParserUtil1.getFilternames()) {
-                                    userClassList.add(str);
-                                }
-                                UserClassProcessing userClassProcessing = new UserClassProcessing();
-                                userClassProcessing.setUserClassList(userClassList);
-                                userClassProcessing.setJdkList(jdkList);
-                                userClassList.add("userDefinedClass");
-                                MethodDeclaration method = (MethodDeclaration) body;
-                                //System.out.println(method.getName() + " " + method.getParameters());
-                                List<String> parameterNameList = new ArrayList<>();
-                                List<String> typeMapList = new ArrayList<>();
-                                List<String> completeTypeMapList = new ArrayList<>();
-                                List<ExpressionStmt> parameterExpressionList = new ArrayList<>();
-                                if (method.getParameters() != null) {
-                                    List<Parameter> parameterList = method.getParameters();
-                                    for (int i = 0; i < parameterList.size(); i++) {
-                                        String contentString = "public class Test{public void test(){$}}";
-                                        String parameterString = parameterList.get(i).toString() + ";";
-                                        contentString = contentString.replaceAll("\\$", parameterString);
-                                        InputStream in = new ByteArrayInputStream(contentString.getBytes());
-                                        try {
-                                            CompilationUnit compilationUnit = StaticJavaParser.parse(in);
-                                            Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
-                                            ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(1).getChildNodes().get(0);
-                                            parameterExpressionList.add(expression);
-                                        } catch (Exception e) {
-                                            continue;
-                                        }
-                                    }
-                                }
-                                /*添加类中的成员变量*/
-                                GraphCreator creator = new GraphCreator(globalPath);
-                                creator.setUserClassProcessing(userClassProcessing);
-                                creator.setStarImportStringList(starImportStringList);
-                                GraphCreator creator2 = new GraphCreator(globalPath);
-                                creator2.setUserClassProcessing(userClassProcessing);
-                                creator2.setStarImportStringList(starImportStringList);
-                                List<String> tempUserClassList = new ArrayList<>();
-                                for (int i = 0; i < completeClassNameList.size(); i++) {
-                                    try {
-                                        Class clazz = Thread.currentThread().getContextClassLoader().loadClass(completeClassNameList.get(i));
-                                        if (jdkList.contains(completeClassNameList.get(i))) {
-                                            creator.getClass_name_map().put(clazz.getSimpleName(), completeClassNameList.get(i));
-                                            creator2.getClass_name_map().put(clazz.getSimpleName(), completeClassNameList.get(i));
-                                        } else {
-                                            tempUserClassList.add(completeClassNameList.get(i));
-                                            userClassList.add(completeClassNameList.get(i));
-                                        }
-                                    } catch (Exception e) {
-                                        tempUserClassList.add(completeClassNameList.get(i));
-                                        userClassList.add(completeClassNameList.get(i));
-                                    } catch (Error e) {
-                                        //System.err.println(e.getCause());
-                                        tempUserClassList.add(completeClassNameList.get(i));
-                                        userClassList.add(completeClassNameList.get(i));
-                                    }
-
-                                }
-                                //过滤掉反射不到的类
-                                for (int i = 0; i < tempUserClassList.size(); i++) {
-                                    completeClassNameList.remove(tempUserClassList.get(i));
-                                }
-                                tempUserClassList.removeAll(tempUserClassList);
-                                //处理field
-                                for (int i = 0; i < fieldExpressionList.size(); i++) {
-                                    creator.convert(fieldExpressionList.get(i));
-                                }
-                                //处理method中的parameter
-                                for (int i = 0; i < parameterExpressionList.size(); i++) {
-                                    creator.convert(parameterExpressionList.get(i));
-                                    creator2.convert(parameterExpressionList.get(i));
-                                }
-                                for (int i = 0; i < fieldExpressionList.size(); i++) {
-                                    creator2.convert(fieldExpressionList.get(i));
-                                }
-                                parameterNodeList = new ArrayList<>();
-                                if (creator2.getGraph() != null && creator2.getGraph().getRoot() != null) {
-                                    creator2.getGraph().getParameterNodes(creator2.getGraph().getRoot(), parameterNodeList, new ArrayList<String>());
-                                }
-                                /*get code tree from japa parse*/
-                                Graph graph = constructGraphFromAST(completeClassNameList, parameterNameList, typeMapList,
-                                        completeTypeMapList, starImportStringList, method, creator, userClassProcessing, holeFlag, globalPath, jdkList,
-                                        gloveVocabList, stopWordsList);
-                                if (graph != null && graph.getRoot() != null) {
-                                    String functionTrace = method.getName().toString();
-                                    functionTrace += "[";
-                                    int parameterCount = 0;
-                                    if (method.getParameters() != null) {
-                                        for (Parameter parameter : method.getParameters()) {
-                                            parameterCount++;
-                                            if (parameterCount > 1) {
-                                                functionTrace += ", ";
-                                            }
-                                            functionTrace += parameter.getType().toString();
-                                            functionTrace += " " + parameter.getName();
-                                        }
-                                    }
-                                    functionTrace += "]";
-                                    functionTrace += " (" + filePath + ") ";
-                                    functionTrace = functionTrace.replaceAll("\r", "");
-                                    functionTrace = functionTrace.replaceAll("\n", "");
-                                    graph.setFunctionTrace(functionTrace);
-                                    linesCount += lines;
-                                    return graph;
-                                } else {
-                                    return null;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    }
+//    public Graph getTestGraph(int count, String filePath, boolean isFilePath, List<String> jdkList,
+//                              ObjectOutputStream graphWriter, FileWriter traceWriter, boolean holeFlag,
+//                              List<String> gloveVocabList, List<String> stopWordsList) {
+//        Graph result;
+//        JavaParserUtil javaParserUtil = new JavaParserUtil(true);
+//        List<String> tempList = new ArrayList<>();
+//        CompilationUnit cu = new CompilationUnit();
+//        try {
+//            if (isFilePath) {
+//                cu = StaticJavaParser.parse(new File(filePath));
+//            } else {
+//                InputStream in = new ByteArrayInputStream(filePath.getBytes());
+//                cu = StaticJavaParser.parse(in);
+//            }
+//            tempList = javaParserUtil.parse(cu);
+//        } catch (Exception e) {
+//
+//        } catch (Error e) {
+//
+//        }
+//        //如果Import的包中带有*号，那么得到含有*号的这个import
+//        List importList = cu.getImports();
+//        List<String> starImportStringList = new ArrayList<>();
+//        if (importList != null) {
+//            for (int i = 0; i < importList.size(); i++) {
+//                if (importList.get(i).toString().contains("*")) {
+//                    String str = importList.get(i).toString();
+//                    int index = str.indexOf("import");
+//                    str = str.substring(index);
+//                    String[] strs = str.split(" ");
+//                    str = strs[strs.length - 1];//得到Import的包的信息
+//                    str = str.replace(" ", ""); //替换掉空格" "
+//                    str = str.replace(";", ""); //去除;
+//                    starImportStringList.add(str);
+//                }
+//            }
+//        }
+//        //开始分析程序
+//        if (cu.getTypes() != null) {
+//            for (TypeDeclaration type : cu.getTypes()) {
+//                if (type instanceof ClassOrInterfaceDeclaration) {
+//                    //处理field
+//                    List<VariableDeclarationExpr> fieldExpressionList = new ArrayList<>();
+//                    for (BodyDeclaration body : (NodeList<BodyDeclaration>)type.getMembers()) {
+//                        if (body instanceof FieldDeclaration) {
+//                            FieldDeclaration field = (FieldDeclaration) body;
+//                            for (int i = 0; i < field.getVariables().size(); i++) {
+//                                VariableDeclarationExpr expr = new VariableDeclarationExpr();
+//                                NodeList list = new NodeList();
+//                                list.add(field.getVariables().get(i));
+//                                expr.setAllTypes(field.getCommonType());
+//                                expr.setVariables(list);
+//                                fieldExpressionList.add(expr);
+//                            }
+//                        }
+//                    }
+//                    //处理method
+//                    for (BodyDeclaration body : (NodeList<BodyDeclaration>)type.getMembers()) {
+//                        if (body instanceof MethodDeclaration) {
+//                            int lines = countCodeLine(body);
+//                            if (lines >= 2) {
+//                                List<String> completeClassNameList = new ArrayList<>();
+//                                for (String str : tempList) {
+//                                    completeClassNameList.add(str);
+//                                }
+//                                List userClassList = new ArrayList();
+//                                JavaParserUtil javaParserUtil1 = new JavaParserUtil();
+//                                for (String str : javaParserUtil1.getFilternames()) {
+//                                    userClassList.add(str);
+//                                }
+//                                UserClassProcessing userClassProcessing = new UserClassProcessing();
+//                                userClassProcessing.setUserClassList(userClassList);
+//                                userClassProcessing.setJdkList(jdkList);
+//                                userClassList.add("userDefinedClass");
+//                                MethodDeclaration method = (MethodDeclaration) body;
+//                                //System.out.println(method.getName() + " " + method.getParameters());
+//                                List<String> parameterNameList = new ArrayList<>();
+//                                List<String> typeMapList = new ArrayList<>();
+//                                List<String> completeTypeMapList = new ArrayList<>();
+//                                List<ExpressionStmt> parameterExpressionList = new ArrayList<>();
+//                                if (method.getParameters() != null) {
+//                                    List<Parameter> parameterList = method.getParameters();
+//                                    for (int i = 0; i < parameterList.size(); i++) {
+//                                        String contentString = "public class Test{public void test(){$}}";
+//                                        String parameterString = parameterList.get(i).toString() + ";";
+//                                        contentString = contentString.replaceAll("\\$", parameterString);
+//                                        InputStream in = new ByteArrayInputStream(contentString.getBytes());
+//                                        try {
+//                                            CompilationUnit compilationUnit = StaticJavaParser.parse(in);
+//                                            Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
+//                                            ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(1).getChildNodes().get(0);
+//                                            parameterExpressionList.add(expression);
+//                                        } catch (Exception e) {
+//                                            continue;
+//                                        }
+//                                    }
+//                                }
+//                                /*添加类中的成员变量*/
+//                                GraphCreator creator = new GraphCreator();
+//                                creator.setUserClassProcessing(userClassProcessing);
+//                                creator.setStarImportStringList(starImportStringList);
+//                                GraphCreator creator2 = new GraphCreator();
+//                                creator2.setUserClassProcessing(userClassProcessing);
+//                                creator2.setStarImportStringList(starImportStringList);
+//                                List<String> tempUserClassList = new ArrayList<>();
+//                                for (int i = 0; i < completeClassNameList.size(); i++) {
+//                                    try {
+//                                        Class clazz = Thread.currentThread().getContextClassLoader().loadClass(completeClassNameList.get(i));
+//                                        if (jdkList.contains(completeClassNameList.get(i))) {
+//                                            creator.getClass_name_map().put(clazz.getSimpleName(), completeClassNameList.get(i));
+//                                            creator2.getClass_name_map().put(clazz.getSimpleName(), completeClassNameList.get(i));
+//                                        } else {
+//                                            tempUserClassList.add(completeClassNameList.get(i));
+//                                            userClassList.add(completeClassNameList.get(i));
+//                                        }
+//                                    } catch (Exception e) {
+//                                        tempUserClassList.add(completeClassNameList.get(i));
+//                                        userClassList.add(completeClassNameList.get(i));
+//                                    } catch (Error e) {
+//                                        //System.err.println(e.getCause());
+//                                        tempUserClassList.add(completeClassNameList.get(i));
+//                                        userClassList.add(completeClassNameList.get(i));
+//                                    }
+//
+//                                }
+//                                //过滤掉反射不到的类
+//                                for (int i = 0; i < tempUserClassList.size(); i++) {
+//                                    completeClassNameList.remove(tempUserClassList.get(i));
+//                                }
+//                                tempUserClassList.removeAll(tempUserClassList);
+//                                //处理field
+//                                for (int i = 0; i < fieldExpressionList.size(); i++) {
+//                                    creator.convert(fieldExpressionList.get(i));
+//                                }
+//                                //处理method中的parameter
+//                                for (int i = 0; i < parameterExpressionList.size(); i++) {
+//                                    creator.convert(parameterExpressionList.get(i));
+//                                    creator2.convert(parameterExpressionList.get(i));
+//                                }
+//                                for (int i = 0; i < fieldExpressionList.size(); i++) {
+//                                    creator2.convert(fieldExpressionList.get(i));
+//                                }
+//                                parameterNodeList = new ArrayList<>();
+//                                if (creator2.getGraph() != null && creator2.getGraph().getRoot() != null) {
+//                                    creator2.getGraph().getParameterNodes(creator2.getGraph().getRoot(), parameterNodeList, new ArrayList<String>());
+//                                }
+//                                /*get code tree from japa parse*/
+//                                Graph graph = constructGraphFromAST(completeClassNameList, parameterNameList, typeMapList,
+//                                        completeTypeMapList, starImportStringList, method, creator, userClassProcessing, holeFlag, jdkList,
+//                                        gloveVocabList, stopWordsList);
+//                                if (graph != null && graph.getRoot() != null) {
+//                                    String functionTrace = method.getName().toString();
+//                                    functionTrace += "[";
+//                                    int parameterCount = 0;
+//                                    if (method.getParameters() != null) {
+//                                        for (Parameter parameter : method.getParameters()) {
+//                                            parameterCount++;
+//                                            if (parameterCount > 1) {
+//                                                functionTrace += ", ";
+//                                            }
+//                                            functionTrace += parameter.getType().toString();
+//                                            functionTrace += " " + parameter.getName();
+//                                        }
+//                                    }
+//                                    functionTrace += "]";
+//                                    functionTrace += " (" + filePath + ") ";
+//                                    functionTrace = functionTrace.replaceAll("\r", "");
+//                                    functionTrace = functionTrace.replaceAll("\n", "");
+//                                    graph.setFunctionTrace(functionTrace);
+//                                    linesCount += lines;
+//                                    return graph;
+//                                } else {
+//                                    return null;
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        return null;
+//    }
 
 }
 

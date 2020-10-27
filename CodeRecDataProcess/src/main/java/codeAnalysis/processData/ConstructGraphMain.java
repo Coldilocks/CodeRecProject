@@ -31,10 +31,6 @@ public class ConstructGraphMain {
             DataConfig.loadConfig(args[0]);
         }
 
-        String globalPath = System.getProperty("user.dir");
-
-        String outputPath = DataConfig.OUTPUT_PATH;
-
         ConstructGraph graphConstructor = new ConstructGraph();
         GloveVocab gloveVocab = new GloveVocab();
         List<String> gloveVocabList = gloveVocab.getGloveList();
@@ -57,6 +53,7 @@ public class ConstructGraphMain {
         }
 
         // Create FileWriters for output
+        String outputPath = DataConfig.OUTPUT_PATH;
         FileWriterUtil.createWriters(outputPath);
 
         // Read txt file to get java file paths
@@ -67,15 +64,21 @@ public class ConstructGraphMain {
         while (scanner.hasNextLine()) {
             String singleJavaFilePath = scanner.nextLine();
             System.out.println(++index +": " + singleJavaFilePath);
+
             // Construct Training data
-            File file = new File(singleJavaFilePath);
-            if (file.length() / 1024 <= 200) {
-                graphConstructor.constructGraph(
-                        0, singleJavaFilePath, true,
-                        jdkList, false, globalPath,
-                        gloveVocabList, stopWordsList
-                );
+            try {
+                File file = new File(singleJavaFilePath);
+                if (file.length() / 1024 <= 200) {
+                    graphConstructor.constructGraph(
+                            0, singleJavaFilePath, true,
+                            jdkList, false,
+                            gloveVocabList, stopWordsList
+                    );
+                }
+            } catch (Exception | Error e) {
+                //e.printStackTrace();
             }
+
         }
 
         FileWriterUtil.graphWriter.writeObject(null);

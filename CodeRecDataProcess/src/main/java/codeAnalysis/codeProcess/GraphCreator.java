@@ -155,7 +155,7 @@ public class GraphCreator extends GraphConverter {
         class_name_map.putIfAbsent(type, type);
     }
 
-    public GraphCreator(String globalPath) {
+    public GraphCreator() {
         try {
             File fileClassNameMap = new File(DataConfig.CLASS_NAME_MAP_CONFIG_FILE_PATH);
             //File fileClassNameMap = new File(globalPath + "/class_name_map.config");
@@ -174,7 +174,7 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    public GraphCreator(List<String> completeClassNameList, GraphCreator creator, String globalPath, List<String> jdkList) {
+    public GraphCreator(List<String> completeClassNameList, GraphCreator creator, List<String> jdkList) {
         class_name_map = creator.getClass_name_map();
         class_variable_list = creator.getClass_variable_list();
         class_variable = creator.getClass_variable();
@@ -1470,12 +1470,10 @@ public class GraphCreator extends GraphConverter {
             GraphNode judgeNode = lastNode;
             tempViriableName = variableName;
             if (userClassProcessing.isUserClassProcessing(node.getCompleteClassName())) {
-                checkVariableUsed(n.getVariables().get(i).getInitializer().get(), false, null,true,true);
-                dealVariableDeclarationExpr(type1, variableName, node, n.getVariables().get(i).getInitializer().get(), n, i);
+                checkVariableUsed(n.getVariables().get(i).getInitializer().isPresent()? n.getVariables().get(i).getInitializer().get() : null, false, null,true,true);
+                dealVariableDeclarationExpr(type1, variableName, node, n.getVariables().get(i).getInitializer().isPresent() ? n.getVariables().get(i).getInitializer().get() : null, n, i);
                 if (lastNode != null && !lastNode.equals(judgeNode) && userClassProcessing.isUserClassProcessing(lastNode.getCompleteClassName())) {
-                    if (variableNodeMap.get(variableName).contains(lastNode)) {
-                        variableNodeMap.get(variableName).remove(lastNode);
-                    }
+                    variableNodeMap.get(variableName).remove(lastNode);
                     if (lastNode.getParentNode() != null) {
                         lastNode.getParentNode().getChildNodes().remove(lastNode);
                         removeNode(lastNode);
