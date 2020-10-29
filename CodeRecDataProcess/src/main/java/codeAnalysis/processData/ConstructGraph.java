@@ -50,6 +50,11 @@ public class ConstructGraph {
         List<ImportDeclaration> importList = cu.getImports();
         List<String> starImportStringList = new ArrayList<>();
         if (importList != null) {
+            /*
+             *  todo: 识别错误，会算上import语句上方的注释中的*
+             *  todo: 过滤方法错误，得到的str包含换行符\n
+             *  todo: 把Object改成ImportDeclaration，然后getName
+             */
             for (Object o : importList) {
                 if (o.toString().contains("*")) {
                     String str = o.toString();
@@ -113,19 +118,13 @@ public class ConstructGraph {
                                         String contentString = "public class Test{public void test(){$}}";
                                         String parameterString = parameterList.get(i).toString() + ";";
                                         contentString = contentString.replaceAll("\\$", parameterString);
-                                        // todo: delete this line
-                                        InputStream in = new ByteArrayInputStream(contentString.getBytes());
                                         try {
-                                            // todo: modify to  {@code: CompilationUnit compilationUnit = StaticJavaParser.parse(contentString);}
-                                            CompilationUnit compilationUnit = StaticJavaParser.parse(in);
+                                            CompilationUnit compilationUnit = StaticJavaParser.parse(contentString);
                                             Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
-                                            // todo: modify to {@code: ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(3).getChildNodes().get(0);}
-                                            ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(1).getChildNodes().get(0);
+                                            // todo: node.getChildNodes().get(1) modified to node.getChildNodes().get(3)
+                                            ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(3).getChildNodes().get(0);
                                             parameterExpressionList.add(expression);
-                                        } catch (Exception e) {
-                                            continue;
-                                        } catch (Error e) {
-                                            continue;
+                                        } catch (Exception | Error e) {
                                         }
                                     }
                                 }
@@ -151,11 +150,11 @@ public class ConstructGraph {
 
                                 }
                                 //过滤掉反射不到的类
-                                for (String s : tempUserClassList) {
-                                    completeClassNameList.remove(s);
-                                }
+                                completeClassNameList.removeAll(tempUserClassList);
+
                                 // todo: why called on itself?
                                 tempUserClassList.removeAll(tempUserClassList);
+
                                 //处理field
                                 for (VariableDeclarationExpr variableDeclarationExpr : fieldExpressionList) {
                                     creator.convert(variableDeclarationExpr);

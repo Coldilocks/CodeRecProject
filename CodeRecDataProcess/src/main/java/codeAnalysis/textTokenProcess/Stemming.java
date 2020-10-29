@@ -9,6 +9,12 @@ import java.io.InputStreamReader;
 
 public class Stemming {
 
+    /**
+     * 调用python代码
+     * todo: 改成调用NLTK服务的形式
+     * @param word
+     * @return
+     */
     public String getLemma(String word) {
         String lemma = null;
         try {

@@ -1399,26 +1399,27 @@ public class GraphCreator extends GraphConverter {
                 type2 = type1;
             }
             // todo: why check on @code: {contains("[")} ?
-            if (n.getVariables().get(i).getName().toString().contains("[")) {
-                int index = n.getVariables().get(i).getName().toString().indexOf("[");
-                String str = n.getVariables().get(i).getName().toString().substring(index);
-                class_variable.put(n.getVariables().get(i).getName().toString(), type1 + str);
-                variableName = n.getVariables().get(i).getName().toString();
-                variable_line_map.put(n.getVariables().get(i).getName().toString(), n.getEnd().get().line);
+            String currentVariableName = n.getVariables().get(i).getName().toString();
+            if (currentVariableName.contains("[")) {
+                int index = currentVariableName.indexOf("[");
+                String str = currentVariableName.substring(index);
+                class_variable.put(currentVariableName, type1 + str);
+                variableName = currentVariableName;
+                variable_line_map.put(currentVariableName, n.getEnd().get().line);
                 //variable_use_map.put(n.getVars().get(i).getId().toString(),0);
-                if (!class_variable_list.contains(n.getVariables().get(i).getName().toString())) {
-                    class_variable_list.add(n.getVariables().get(i).getName().toString());
+                if (!class_variable_list.contains(currentVariableName)) {
+                    class_variable_list.add(currentVariableName);
                 } else {
                     setModifiedFalse(variableName);
                 }
                 type1 += str;
             } else {
-                class_variable.put(n.getVariables().get(i).getName().toString(), type1);
-                variableName = n.getVariables().get(i).getName().toString();
-                variable_line_map.put(n.getVariables().get(i).getName().toString(), n.getEnd().isPresent()? n.getEnd().get().line : 0);
+                class_variable.put(currentVariableName, type1);
+                variableName = currentVariableName;
+                variable_line_map.put(currentVariableName, n.getEnd().isPresent()? n.getEnd().get().line : 0);
                 //variable_use_map.put(n.getVars().get(i).getId().toString(),0);
-                if (!class_variable_list.contains(n.getVariables().get(i).getName().toString())) {
-                    class_variable_list.add(n.getVariables().get(i).getName().toString());
+                if (!class_variable_list.contains(currentVariableName)) {
+                    class_variable_list.add(currentVariableName);
                 } else {
                     setModifiedFalse(variableName);
                 }

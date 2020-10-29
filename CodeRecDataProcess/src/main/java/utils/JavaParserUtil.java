@@ -110,7 +110,7 @@ public class JavaParserUtil {
 
     /**
      * 过滤出第三方类名,输入需要过滤的完整类名list,用户所在包名,返回过滤后的list
-     * todo：有JDK的类被是别称第三方类了，需要修改；还有第三方的类没有被过滤，也需要修改
+     * todo：有JDK的类被识别成第三方类了，需要修改；还有第三方的类没有被过滤，也需要修改
      * @return
      */
     private HashSet<String> filterUserDefinedClass() {
