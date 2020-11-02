@@ -1,10 +1,12 @@
 package test;
 
 
+import codeAnalysis.codeProcess.AndroidGraphCreator;
 import codeAnalysis.codeProcess.GraphCreator;
 import codeAnalysis.codeProcess.UserClassProcessing;
 import codeAnalysis.codeRepresentation.Graph;
 import codeAnalysis.codeRepresentation.GraphNode;
+import com.github.javaparser.JavaParser;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -17,6 +19,7 @@ import javafx.util.Pair;
 import utils.ConstructGraphUtil;
 import utils.JavaParserUtil;
 
+import codeAnalysis.codeRepresentation.GraphNode;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -83,23 +86,25 @@ public class Predict {
         //System.out.println(nodeEdgeSet + "\r\n");
         //System.out.println(words + "\r\n");
         //System.out.println(variableNameSet + "\r\n");
-        Runtime run_0 = Runtime.getRuntime();
-        String[] cmd_0 = new String[] {"source","activate","tf_gpu_1_14_0"};
-        try {
-            Process p = run_0.exec(cmd_0);
-        }catch (Exception e) {
-            System.out.println(e.getMessage());
-            // System.err.println("python error");
-        }catch(Error e){
-            System.out.println(e.getMessage());
 
-        }
+//        Runtime run_0 = Runtime.getRuntime();
+//        String[] cmd_0 = new String[] {"source","activate","tf_gpu_1_14_0"};
+//        try {
+//            Process p = run_0.exec(cmd_0);
+//        }catch (Exception e) {
+//            System.out.println(e.getMessage());
+//            // System.err.println("python error");
+//        }catch(Error e){
+//            System.out.println(e.getMessage());
+//
+//        }
+        long st = System.currentTimeMillis();
         Runtime run = Runtime.getRuntime();
-        String[] cmd = new String[] {"python3", DataConfig.GGNN_CLIENT_PYTHON_FILE_PATH, nodeEdgeSet,words,variableNameSet};
-        System.out.println(DataConfig.GGNN_CLIENT_PYTHON_FILE_PATH);
-        System.out.println(nodeEdgeSet);
-        System.out.println(words);
-        System.out.println(variableNameSet);
+        String[] cmd = new String[] {"python3",globalPath + "/ggnn/Client.py",nodeEdgeSet,words,variableNameSet};
+//        System.out.println(globalPath + "/ggnn/Client.py");
+//        System.out.println(nodeEdgeSet);
+//        System.out.println(words);
+//        System.out.println(variableNameSet);
         List<String> top5Result = new ArrayList<>();
         try {
             Process p = run.exec(cmd);
@@ -116,10 +121,11 @@ public class Predict {
                     line = line.replaceAll("\r","");
                     line = line.replaceAll("\n","");
                     String prediciton = line.split(" +")[0];
-                    //System.out.println(line);
+//                    System.out.println(line);
+                    line = line.replace("+false","");
                     //SyntaxChecker syntaxChecker = new SyntaxChecker();
                     //if(top5Result.size() < 5){
-                    if(top5Result.size() < 20 && !prediciton.equals("conditionEnd") && !prediciton.equals("end") && !prediciton.equals("termination")){
+                    if(top5Result.size() < 10 && !prediciton.equals("conditionEnd") && !prediciton.equals("end") && !prediciton.equals("termination")){
                         top5Result.add(line);
                         //System.out.println(line);
                     }
@@ -140,16 +146,19 @@ public class Predict {
             //e.printStackTrace();
         }
         //the following code is used to make sure that there are five candidates
-        while(top5Result.size() < 5){
+        while(top5Result.size() < 10){
             top5Result.add("termination 0.01");
+            //top5Result.add("termination");
         }
         //String prediction = top5Result.get(0).split(" ")[0];
         //serialNumberString = operateCodeTree(codeTree, prediction);
+        long ed = System.currentTimeMillis();
+        System.out.println("predict time:" + (ed-st));
         return top5Result;
     }
 
-    public List<Graph> getCodeGraph(String filePath, boolean isFilePath, boolean holeFlag, String globalPath, List<String> jdkList, List<String> gloveVocabList, List<String> stopWordsList) throws Exception {
-        JavaParserUtil JavaParserUtil = new JavaParserUtil(true);
+    public List<Graph> getAndroidCodeGraph(String filePath, boolean isFilePath, boolean holeFlag, String globalPath, List<String> jdkList,List<String> gloveVocabList, List<String> stopWordsList) throws Exception {
+        JavaParserUtil japaAst = new JavaParserUtil(true);
         List<String> tempList = new ArrayList<>();
         CompilationUnit cu = new CompilationUnit();
         //System.out.println(filePath);
@@ -160,7 +169,7 @@ public class Predict {
                 InputStream in = new ByteArrayInputStream(filePath.getBytes());
                 cu = StaticJavaParser.parse(in);
             }
-            tempList = new ArrayList<>(JavaParserUtil.parse(cu));
+            tempList = new ArrayList<>(japaAst.parse(cu));
         } catch (Exception e) {
             List<Graph> result = new ArrayList<>();
             result.add(null);
@@ -193,7 +202,7 @@ public class Predict {
             for (TypeDeclaration type : cu.getTypes()) {
                 if (type instanceof ClassOrInterfaceDeclaration) {
                     List<VariableDeclarationExpr> fieldExpressionList = new ArrayList<>();
-                    result = dealClassOrInterfaceDeclaration((ClassOrInterfaceDeclaration)type,fieldExpressionList,JavaParserUtil,tempList,result,
+                    result = dealAndroidClassOrInterfaceDeclaration((ClassOrInterfaceDeclaration)type,fieldExpressionList,japaAst,tempList,result,
                             starImportStringList,filePath,holeFlag,globalPath,jdkList,gloveVocabList,stopWordsList);
                     if(result.size() > 0){
                         break;
@@ -204,7 +213,63 @@ public class Predict {
         return result;
     }
 
-    public List<Graph> dealClassOrInterfaceDeclaration(ClassOrInterfaceDeclaration type, List<VariableDeclarationExpr> fieldExpressionList, JavaParserUtil JavaParserUtil, List<String> tempList, List<Graph> result,
+    public List<Graph> getCodeGraph(String filePath, boolean isFilePath, boolean holeFlag, String globalPath, List<String> jdkList,List<String> gloveVocabList, List<String> stopWordsList) throws Exception {
+        JavaParserUtil japaAst = new JavaParserUtil(true);
+        List<String> tempList = new ArrayList<>();
+        CompilationUnit cu = new CompilationUnit();
+        //System.out.println(filePath);
+        try {
+            if (isFilePath) {
+                cu = StaticJavaParser.parse(new File(filePath));
+            } else {
+                InputStream in = new ByteArrayInputStream(filePath.getBytes());
+                cu = StaticJavaParser.parse(in);
+            }
+            tempList = new ArrayList<>(japaAst.parse(cu));
+        } catch (Exception e) {
+            List<Graph> result = new ArrayList<>();
+            result.add(null);
+            return result;
+        } catch (Error e) {
+            List<Graph> result = new ArrayList<>();
+            result.add(null);
+            return result;
+        }
+        //如果Import的包中带有*号，那么得到含有*号的这个import
+        List importList = cu.getImports();
+        List<String> starImportStringList = new ArrayList<>();
+        if (importList != null) {
+            for (int i = 0; i < importList.size(); i++) {
+                if (importList.get(i).toString().contains("*")) {
+                    String str = importList.get(i).toString();
+                    int index = str.indexOf("import");
+                    str = str.substring(index);
+                    String[] strs = str.split(" ");
+                    str = strs[strs.length - 1];//得到Import的包的信息
+                    str = str.replace(" ", ""); //替换掉空格" "
+                    str = str.replace(";", ""); //去除;
+                    starImportStringList.add(str);
+                }
+            }
+        }
+        //开始分析程序
+        List<Graph> result = new ArrayList<>();
+        if (cu.getTypes() != null) {
+            for (TypeDeclaration type : cu.getTypes()) {
+                if (type instanceof ClassOrInterfaceDeclaration) {
+                    List<VariableDeclarationExpr> fieldExpressionList = new ArrayList<>();
+                    result = dealClassOrInterfaceDeclaration((ClassOrInterfaceDeclaration)type,fieldExpressionList,japaAst,tempList,result,
+                            starImportStringList,filePath,holeFlag,globalPath,jdkList,gloveVocabList,stopWordsList);
+                    if(result.size() > 0){
+                        break;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public List<Graph> dealAndroidClassOrInterfaceDeclaration(ClassOrInterfaceDeclaration type, List<VariableDeclarationExpr> fieldExpressionList, JavaParserUtil japaAst, List<String> tempList, List<Graph> result,
                                                                   List<String> starImportStringList, String filePath, boolean holeFlag, String globalPath, List<String> jdkList,List<String> gloveVocabList, List<String> stopWordsList){
         //处理field
         for (BodyDeclaration body : type.getMembers()) {
@@ -212,7 +277,7 @@ public class Predict {
                 FieldDeclaration field = (FieldDeclaration) body;
                 for (int i = 0; i < field.getVariables().size(); i++) {
                     VariableDeclarationExpr expr = new VariableDeclarationExpr();
-                    NodeList list = new NodeList();
+                    NodeList<VariableDeclarator> list = new NodeList<>();
                     list.add(field.getVariables().get(i));
                     expr.setAllTypes(field.getCommonType());
                     expr.setVariables(list);
@@ -223,7 +288,7 @@ public class Predict {
         //处理method
         for (BodyDeclaration body : type.getMembers()) {
             if(body instanceof ClassOrInterfaceDeclaration){
-                return dealClassOrInterfaceDeclaration((ClassOrInterfaceDeclaration)body,fieldExpressionList,JavaParserUtil,tempList,result,
+                return dealAndroidClassOrInterfaceDeclaration((ClassOrInterfaceDeclaration)body,fieldExpressionList,japaAst,tempList,result,
                         starImportStringList,filePath,holeFlag,globalPath,jdkList,gloveVocabList,stopWordsList);
             }
             if (body instanceof MethodDeclaration || body instanceof ConstructorDeclaration) {
@@ -247,7 +312,7 @@ public class Predict {
                         completeClassNameList.add(str);
                     }
                     List userClassList = new ArrayList();
-                    for (String str : JavaParserUtil.getUserDefinedClassNames()) {
+                    for (String str : japaAst.getUserDefinedClassNames()) {
                         userClassList.add(str);
                     }
                     UserClassProcessing userClassProcessing = new UserClassProcessing();
@@ -301,14 +366,216 @@ public class Predict {
                             try {
                                 CompilationUnit compilationUnit = StaticJavaParser.parse(in);
                                 Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
-                                ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(3).getChildNodes().get(0);
+                                ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(1).getChildNodes().get(0);
                                 parameterExpressionList.add(expression);
                             } catch (Exception e) {
-                                e.printStackTrace();
                                 result.add(null);
                                 return result;
                             } catch (Error e) {
-                                e.printStackTrace();
+                                result.add(null);
+                                return result;
+                            }
+                        }
+                    }
+                    /*添加类中的成员变量*/
+                    AndroidGraphCreator creator = new AndroidGraphCreator(globalPath);
+                    creator.setUserClassProcessing(userClassProcessing);
+                    creator.setStarImportStringList(starImportStringList);
+                    AndroidGraphCreator creator2 = new AndroidGraphCreator(globalPath);
+                    creator2.setUserClassProcessing(userClassProcessing);
+                    creator2.setStarImportStringList(starImportStringList);
+                    List<String> tempUserClassList = new ArrayList<>();
+                    for (int i = 0; i < completeClassNameList.size(); i++) {
+                        try {
+                            Class clazz = Thread.currentThread().getContextClassLoader().loadClass(completeClassNameList.get(i));
+                            if (jdkList.contains(completeClassNameList.get(i))) {
+                                creator.getClass_name_map().put(clazz.getSimpleName(), completeClassNameList.get(i));
+                                creator2.getClass_name_map().put(clazz.getSimpleName(), completeClassNameList.get(i));
+                            } else {
+                                tempUserClassList.add(completeClassNameList.get(i));
+                                userClassList.add(completeClassNameList.get(i));
+                            }
+                        } catch (Exception e) {
+                            tempUserClassList.add(completeClassNameList.get(i));
+                            userClassList.add(completeClassNameList.get(i));
+                        } catch (Error e) {
+                            //System.err.println(e.getCause());
+                            tempUserClassList.add(completeClassNameList.get(i));
+                            userClassList.add(completeClassNameList.get(i));
+                        }
+
+                    }
+                    //过滤掉反射不到的类
+                    for (int i = 0; i < tempUserClassList.size(); i++) {
+                        completeClassNameList.remove(tempUserClassList.get(i));
+                    }
+                    tempUserClassList.removeAll(tempUserClassList);
+                    //处理field
+                    for (int i = 0; i < fieldExpressionList.size(); i++) {
+                        creator.convert(fieldExpressionList.get(i));
+                    }
+                    //处理method中的parameter
+                    for (int i = 0; i < parameterExpressionList.size(); i++) {
+                        creator.convert(parameterExpressionList.get(i));
+                        creator2.convert(parameterExpressionList.get(i));
+                    }
+                    for (int i = 0; i < fieldExpressionList.size(); i++) {
+                        creator2.convert(fieldExpressionList.get(i));
+                    }
+
+                    /*get code tree from japa parse*/
+                    Graph graph = constructAndroidGraphFromAST(completeClassNameList, parameterNameList, typeMapList,
+                            completeTypeMapList, starImportStringList, method, creator, userClassProcessing, holeFlag, globalPath, jdkList,
+                            gloveVocabList, stopWordsList);
+                    if (graph != null && graph.getRoot() != null) {
+                        /*display the code tree*/
+                        //String functionTrace = method.getName() + (method.getParameters() == null ? "[]" : method.getParameters()) + " (" + filePath + ") ";
+                        String functionTrace = method.getNameAsString();
+                        functionTrace += "[";
+                        int parameterCount = 0;
+                        if (method.getThrownExceptions() != null && method.getThrownExceptions().size() > 0) {
+                            isThrowException = true;
+                        }
+                        if (method.getParameters() != null) {
+                            for (Parameter parameter : method.getParameters()) {
+                                parameterCount++;
+                                if (parameterCount > 1) {
+                                    functionTrace += ", ";
+                                }
+                                functionTrace += parameter.getType().toString();
+                                functionTrace += " " + parameter.getName();
+                            }
+                        }
+                        functionTrace += "]";
+                        functionTrace += " (" + filePath + ") ";
+                        functionTrace = functionTrace.replaceAll("\r", "");
+                        functionTrace = functionTrace.replaceAll("\n", "");
+                        graph.setFunctionTrace(functionTrace);
+                        graph.setHoleNodeEdgeToUnknown(graph.getRoot(), new ArrayList<>());
+                        // graph.dealHoleNode(new ArrayList<>(),new ArrayList<>());
+                        // System.out.println(holeParentNode + " " + holeChildNode);
+                        result.add(graph);
+                        return result;
+                        //displayTree(graph,false);
+                        /*store the code tree in mongodb*/
+                        //storeTreeInDB(graph);
+                        /*construct training tree data */
+                        //constructTrainingData(graph, treeWriter, predictionWriter, classWriter, generationNodeWriter, treeSentenceWriter, jarWriter, holeSizeWriter, traceWriter, blockpredictionWriter,originalStatementsWriter,variableNamesWriter, true);
+                    } else {
+                        result.add(null);
+                        return result;
+                        //System.err.println("So " + method.getName() + (method.getParameters() == null ? "[]" : method.getParameters()) + " (" + filePath + ") " + " can not be correctly parsed");
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public List<Graph> dealClassOrInterfaceDeclaration(ClassOrInterfaceDeclaration type, List<VariableDeclarationExpr> fieldExpressionList, JavaParserUtil japaAst, List<String> tempList, List<Graph> result,
+                                                             List<String> starImportStringList, String filePath, boolean holeFlag, String globalPath, List<String> jdkList,List<String> gloveVocabList, List<String> stopWordsList){
+        //处理field
+        for (BodyDeclaration body : type.getMembers()) {
+            if (body instanceof FieldDeclaration) {
+                FieldDeclaration field = (FieldDeclaration) body;
+                for (int i = 0; i < field.getVariables().size(); i++) {
+                    VariableDeclarationExpr expr = new VariableDeclarationExpr();
+                    NodeList<VariableDeclarator> list = new NodeList<>();
+                    list.add(field.getVariables().get(i));
+                    expr.setAllTypes(field.getCommonType());
+                    expr.setVariables(list);
+                    fieldExpressionList.add(expr);
+                }
+            }
+        }
+        //处理method
+        for (BodyDeclaration body : type.getMembers()) {
+            if(body instanceof ClassOrInterfaceDeclaration){
+                return dealClassOrInterfaceDeclaration((ClassOrInterfaceDeclaration)body,fieldExpressionList,japaAst,tempList,result,
+                        starImportStringList,filePath,holeFlag,globalPath,jdkList,gloveVocabList,stopWordsList);
+            }
+            if (body instanceof MethodDeclaration || body instanceof ConstructorDeclaration) {
+//                List<Comment> comments = new ArrayList<>();
+//                if(body instanceof MethodDeclaration){
+//                    comments= ((MethodDeclaration)body).getAllContainedComments();
+//                }else{
+//                    comments= ((ConstructorDeclaration)body).getAllContainedComments();
+//                }
+//                String all_comment = "";
+//                for(Comment c:comments){
+//                    all_comment += c.toString();
+//                }
+//                if(!all_comment.contains("/*hole*/")){
+//                    continue;
+//                }
+                int lines = 3;
+                if (lines >= 2) {
+                    List<String> completeClassNameList = new ArrayList<>();
+                    for (String str : tempList) {
+                        completeClassNameList.add(str);
+                    }
+                    List userClassList = new ArrayList();
+                    for (String str : japaAst.getUserDefinedClassNames()) {
+                        userClassList.add(str);
+                    }
+                    UserClassProcessing userClassProcessing = new UserClassProcessing();
+                    userClassProcessing.setUserClassList(userClassList);
+                    userClassProcessing.setJdkList(jdkList);
+                    userClassList.add("userDefinedClass");
+                    MethodDeclaration method;
+                    if (body instanceof ConstructorDeclaration) {
+                        String constructorDeclaration = body.toString();
+                        String str = constructorDeclaration.split("\\(")[0];
+                        String str2 = str;
+                        String[] strs = str2.split(" +");
+                        String str3 = "";
+                        for (int i = 0; i < strs.length - 1; i++) {
+                            str3 += strs[i];
+                            str3 += " ";
+                        }
+                        str3 += "void ";
+                        str3 += strs[strs.length - 1].toLowerCase();
+                        constructorDeclaration = constructorDeclaration.replaceFirst(str, str3);
+                        constructorDeclaration = "public class Test{" + constructorDeclaration + "}";
+                        InputStream in = new ByteArrayInputStream(constructorDeclaration.getBytes());
+                        try {
+                            CompilationUnit compilationUnit = StaticJavaParser.parse(in);
+                            method = (MethodDeclaration) compilationUnit.getTypes().get(0).getMembers().get(0);
+                            method.setBody(((ConstructorDeclaration) body).getBody());
+                        } catch (Exception e) {
+                            result.add(null);
+                            return null;
+                            //continue;
+                        } catch (Error e) {
+                            result.add(null);
+                            return null;
+                            //continue;
+                        }
+                    } else {
+                        method = (MethodDeclaration) body;
+                    }
+                    //System.out.println(method.getName() + " " + method.getParameters());
+                    List<String> parameterNameList = new ArrayList<>();
+                    List<String> typeMapList = new ArrayList<>();
+                    List<String> completeTypeMapList = new ArrayList<>();
+                    List<ExpressionStmt> parameterExpressionList = new ArrayList<>();
+                    if (method.getParameters() != null) {
+                        List<Parameter> parameterList = method.getParameters();
+                        for (int i = 0; i < parameterList.size(); i++) {
+                            String contentString = "public class Test{public void test(){$}}";
+                            String parameterString = parameterList.get(i).toString() + ";";
+                            contentString = contentString.replaceAll("\\$", parameterString);
+                            InputStream in = new ByteArrayInputStream(contentString.getBytes());
+                            try {
+                                CompilationUnit compilationUnit = StaticJavaParser.parse(in);
+                                Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
+                                // todo: check the number
+                                ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(1).getChildNodes().get(0);
+                                parameterExpressionList.add(expression);
+                            } catch (Exception e) {
+                                result.add(null);
+                                return result;
+                            } catch (Error e) {
                                 result.add(null);
                                 return result;
                             }
@@ -340,6 +607,7 @@ public class Predict {
                             tempUserClassList.add(completeClassNameList.get(i));
                             userClassList.add(completeClassNameList.get(i));
                         }
+
                     }
                     //过滤掉反射不到的类
                     for (int i = 0; i < tempUserClassList.size(); i++) {
@@ -379,7 +647,7 @@ public class Predict {
                                     functionTrace += ", ";
                                 }
                                 functionTrace += parameter.getType().toString();
-                                functionTrace += " " + parameter.getNameAsString();
+                                functionTrace += " " + parameter.getName();
                             }
                         }
                         functionTrace += "]";
@@ -408,12 +676,83 @@ public class Predict {
         return result;
     }
 
-    public Graph constructGraphFromAST(List<String> completeClassNameList, List<String> parameterNameList,
+    public Graph constructAndroidGraphFromAST(List<String> completeClassNameList, List<String> parameterNameList,
                                                   List<String> typeMapList, List<String> completeTypeMapList,
                                                   List<String> starImportStringList, MethodDeclaration method,
-                                                  GraphCreator fieldCreator, UserClassProcessing userClassProcessing,
+                                                  AndroidGraphCreator fieldCreator, UserClassProcessing userClassProcessing,
                                                   boolean holeFlag, String globalPath, List<String> jdkList,
                                                   List<String> gloveVocabList, List<String> stopWordsList) {
+        try {
+            AndroidGraphCreator creator = new AndroidGraphCreator(completeClassNameList, fieldCreator, globalPath, jdkList);
+            creator.setHoleFlag(holeFlag);
+            for (int i = 0; i < parameterNameList.size(); i++) {
+                creator.addClass_variable_list(parameterNameList.get(i));
+            }
+            for (int i = 0; i < typeMapList.size(); i++) {
+                String[] strings = typeMapList.get(i).split(" ");
+                creator.addClass_variable(strings[0], strings[1]);
+            }
+            for (int i = 0; i < completeTypeMapList.size(); i++) {
+                creator.addClass_name_map(completeTypeMapList.get(i));
+            }
+            creator.setStarImportStringList(starImportStringList);
+            creator.setUserClassProcessing(userClassProcessing);
+            creator.toGraph(method);
+//            if(creator.getGraph() != null && creator.getGraph().getRoot() != null &&
+//                    "hole".equals(creator.getGraph().getRoot().getCompleteMethodDeclaration())){
+//                Graph graph = new Graph();
+//                GraphNode root = new GraphNode();
+//                root.setCompleteMethodDeclaration("unknown");
+//                graph.setRoot(root);
+//                //添加类属性变量和函数声明中的变量
+//                dealGraph(graph,creator,method,gloveVocabList,stopWordsList);
+//                return graph;
+//            }
+            if(creator.getGraph() != null && creator.getParsedFlag() && creator.getGraph().getRoot() != null
+                    && (creator.getGraph().getRoot().getCompleteMethodDeclaration().equals("hole") || userClassProcessing.isUserClassProcessing(creator.getGraph().getRoot().getCompleteClassName()))
+                    && creator.getGraph().getTotalNumber(new ArrayList<>()) == 1){
+                Graph graph = new Graph();
+                GraphNode root = new GraphNode();
+                root.setCompleteMethodDeclaration("hole");
+                graph.setRoot(root);
+                //添加类属性变量和函数声明中的变量
+                dealAndroidGraph(graph,creator,method,gloveVocabList,stopWordsList);
+                return graph;
+            }
+            else {
+                Graph graph = new Graph();
+                graph.setRoot(creator.getGraph().getRoot());
+                if (creator.getParsedFlag()) {
+                    //添加类属性变量和函数声明中的变量
+                    if(graph.getRoot() != null) {
+                        dealAndroidGraph(graph, creator, method, gloveVocabList, stopWordsList);
+                        return graph;
+                    }else{
+                        GraphNode root = new GraphNode();
+                        root.setCompleteMethodDeclaration("hole");
+                        graph.setRoot(root);
+                        //添加类属性变量和函数声明中的变量
+                        dealAndroidGraph(graph,creator,method,gloveVocabList,stopWordsList);
+                        return graph;
+                    }
+
+                } else {
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            return null;
+        } catch (Error e) {
+            return null;
+        }
+    }
+
+    public Graph constructGraphFromAST(List<String> completeClassNameList, List<String> parameterNameList,
+                                             List<String> typeMapList, List<String> completeTypeMapList,
+                                             List<String> starImportStringList, MethodDeclaration method,
+                                             GraphCreator fieldCreator, UserClassProcessing userClassProcessing,
+                                             boolean holeFlag, String globalPath, List<String> jdkList,
+                                             List<String> gloveVocabList, List<String> stopWordsList) {
         try {
             GraphCreator creator = new GraphCreator(completeClassNameList, fieldCreator, jdkList);
             creator.setHoleFlag(holeFlag);
@@ -477,6 +816,51 @@ public class Predict {
         } catch (Error e) {
             return null;
         }
+    }
+
+    public void dealAndroidGraph(Graph graph, AndroidGraphCreator creator, MethodDeclaration method,List<String> gloveVocabList, List<String> stopWordsList){
+//        Map<String, List<GraphNode>> map = creator.getVariableNodeMap();
+//        for (String key : map.keySet()) {
+//            List<GraphNode> list = map.get(key);
+//            for (int i = 0; i < list.size(); i++) {
+//                if ((list.get(i).isPrimitive() && !list.get(i).isVariablePreserved())) {
+//                    if (!graph.removeNode(list.get(i), new ArrayList<>())) {
+//                        //return null;
+//                    }
+//                }
+//            }
+//        }
+        GraphNode node = new GraphNode();
+        //node.setPreviousVariableNames(creator.getClass_variable_list());
+        node.setPreviousVariableNames(creator.getUsedClassFieldAndMethodArgumentVariable());
+        node.getPreviousVariableNames().add(0, method.getNameAsString());//添加方法名
+        //添加所有参数名
+        if (method.getParameters() != null) {
+            List<Parameter> parameterList = method.getParameters();
+            for (int i = 0; i < parameterList.size(); i++) {
+                String parameterName = parameterList.get(i).getNameAsString();
+                //node.getPreviousVariableNames().add(parameterList.get(i).getId().getName());
+                if(!creator.isVariableBelong2UserDefinedClass(parameterName)) {
+                    node.getPreviousVariableNames().add(parameterName);
+                }
+            }
+        }
+        for (int i = 0; i < node.getPreviousVariableNames().size(); i++) {
+            String variableName = node.getPreviousVariableNames().get(i);
+            variableName = variableName.replaceAll("\r", "");
+            variableName = variableName.replaceAll("\n", "");
+            node.getPreviousVariableNames().set(i, variableName);
+        }
+        graph.processRootVariables(node, gloveVocabList, stopWordsList);
+        graph.setUsedClassFieldAndMethodArgumentVariableList(node.getPreviousVariableNames());
+        graph.dealNodeVariables(graph.getRoot(), gloveVocabList, stopWordsList, new ArrayList<>());
+        //过滤掉原始语句中的\r\n符号
+        graph.filterSpecialCharacterInOriginalStatement(graph.getRoot(), new ArrayList<>());
+        graph.setClass_name_map(creator.getClass_name_map());
+        graph.setClass_variable(creator.getClass_variable());
+        graph.setClass_variable_list(creator.getClass_variable_list());
+        graph.setVariable_use_map(creator.getVariable_use_map());
+        graph.setVariable_line_map(creator.getVariable_line_map());
     }
 
     public void dealGraph(Graph graph, GraphCreator creator, MethodDeclaration method,List<String> gloveVocabList, List<String> stopWordsList){

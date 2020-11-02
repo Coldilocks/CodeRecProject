@@ -1,31 +1,29 @@
-package codeAnalysis.codeProcess;
+package parameterModel;
 
-import codeAnalysis.codeRepresentation.Graph;
-import codeAnalysis.codeRepresentation.GraphNode;
+import codeAnalysis.codeProcess.UserClassProcessing;
+import codeAnalysis.codeProcess.MethodReflection;
 import codeAnalysis.constructVocab.ConstructVocabulary;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.BlockComment;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
-import config.DataConfig;
+
 import utils.CollectionUtils;
-import utils.GraphWriteUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 
-public class GraphCreator extends GraphConverter {
-    private UserClassProcessing userClassProcessing;
-    private Graph graph = new Graph();
-    private GraphNode lastNode = graph.getRoot();
+public class GroumCreator extends GroumConverter {
+    private Groum groum = new Groum();
+    private GroumNode lastNode = groum.getRoot();
     private Map<String, String> class_variable = new HashMap<String, String>();
     private List<String> class_variable_list = new ArrayList<>();
     private Map<String, String> class_name_map = new HashMap<>();
@@ -33,50 +31,50 @@ public class GraphCreator extends GraphConverter {
     private Map<String, Boolean> castMap = new HashMap<>();
     private Map<String, Integer> variable_line_map = new HashMap<>();
     private Map<String, Integer> variable_use_map = new HashMap<>();
-    private boolean parsedFlag = true; // this field is used to judge whether the method can be correctly parsed
+    private boolean parsedFlag = true;// this field is used to judge whether the method can be correctly parsed
     private String returnType = null;
     private List<String> starImportStringList = new ArrayList<>();
-    //private boolean endFlag.endFlag = true;
+    private UserClassProcessing userClassProcessing;
+    private boolean endFlag = true;
     private boolean holeFlag = false;
-    private GraphNode endParentNode = null;
-    private Map<String, List<GraphNode>> variableNodeMap = new HashMap<>();
-    private String globalStatement = null; //用来记录原始语句
-    private String globalVariableName = null; //用来记录当前结点的变量名（针对是变量声明结点）
+    private GroumNode endParentNode = null;
+    private Map<String, List<GroumNode>> variableNodeMap = new HashMap<>();
+    private String globalStatement = null;//用来记录原始语句
+    private String globalVariableName = null;//用来记录当前结点的变量名（针对是变量声明结点）
     private String globalType = null;
     private boolean globalFlag = true;
-    private List<String> commentList = new ArrayList<>(); //用来保存注释信息
-    private List<String> allClassFieldAndMethodArgumentVariable = new ArrayList<>(); //用来存放函数声明中的变量和类属性变量
+    private List<String> commentList = new ArrayList<>();//用来保存注释信息
+    private List<String> allClassFieldAndMethodArgumentVariable = new ArrayList<>();//用来存放函数声明中的变量和类属性变量
     private List<String> jdkList = new ArrayList<>();
-    private GraphNode holeParentNode = null;
-    private List<GraphNode> removeList = new ArrayList<>();
-    private List<GraphNode> binaryNodeList = new ArrayList<>();
+    private GroumNode holeParentNode = null;
+    private List<GroumNode> removeList = new ArrayList<>();
+    private List<GroumNode> binaryNodeList = new ArrayList<>();
     private boolean removeConditionNodeFlag = false;
     private boolean assignFlag = false;
     private boolean binaryFlag = false;
     private boolean conditionAssignFlag = false;
     private boolean conditionFlag = false;
-    private GraphNode objectCreationNode = null;
+    private GroumNode objectCreationNode = null;
     private String tempViriableName = null;
     private boolean foreachConditionFlag = false;
     private boolean variableDeclarationFlag = false;
     private int scopeIndex = 1;
     private List<String> scopeIndexList = new ArrayList<>();
     private List<String> mutexList = new ArrayList<>();
-    private Map<GraphNode, List<String>> mutexMap = new HashMap<>();
+    private Map<GroumNode,List<String>> mutexMap = new HashMap<>();
     private boolean stopFlag = false;
     private int variableCount = 0;
-    private String lastInfo = null;
     private boolean markHole = false;
 
     public List<String> getMutexList() {
         return mutexList;
     }
 
-    public List<GraphNode> getRemoveList() {
+    public List<GroumNode> getRemoveList() {
         return removeList;
     }
 
-    public void setRemoveList(List<GraphNode> removeList) {
+    public void setRemoveList(List<GroumNode> removeList) {
         this.removeList = removeList;
     }
 
@@ -84,16 +82,13 @@ public class GraphCreator extends GraphConverter {
         return usedClassFieldAndMethodArgumentVariable;
     }
 
-    /** 用来存放被用到的函数声明中的变量和类属性变量*/
-    private List<String> usedClassFieldAndMethodArgumentVariable = new ArrayList<>();
+    private List<String> usedClassFieldAndMethodArgumentVariable = new ArrayList<>();//用来存放被用到的函数声明中的变量和类属性变量
+    // next node should be added
+    // twice time (false and
+    // true separately)
+    private boolean elseIfFlag = false;//used to judge whether a node is a else if node
 
-    /** next node should be added
-     *  twice time (false and
-     *  true separately)
-     */
-    private boolean elseIfFlag = false; //used to judge whether a node is a else if node
-
-    public Map<String, List<GraphNode>> getVariableNodeMap() {
+    public Map<String, List<GroumNode>> getVariableNodeMap() {
         return variableNodeMap;
     }
 
@@ -103,6 +98,10 @@ public class GraphCreator extends GraphConverter {
 
     public void setCommentList(List<String> commentList) {
         this.commentList = commentList;
+    }
+
+    public void setUserClassProcessing(UserClassProcessing userClassProcessing) {
+        this.userClassProcessing = userClassProcessing;
     }
 
     public Map<String, Integer> getVariable_line_map() {
@@ -152,13 +151,15 @@ public class GraphCreator extends GraphConverter {
     }
 
     public void addClass_name_map(String type) {
-        class_name_map.putIfAbsent(type, type);
+        if (class_name_map.get(type) == null) {
+            class_name_map.put(type, type);
+        }
     }
 
-    public GraphCreator() {
+    public GroumCreator(String globalPath) {
         try {
-            File fileClassNameMap = new File(DataConfig.CLASS_NAME_MAP_CONFIG_FILE_PATH);
-            //File fileClassNameMap = new File(globalPath + "/class_name_map.config");
+            File fileClassNameMap = new File(globalPath + "/class_name_map.config");
+            //File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/codetree/configs/class_name_map.config");
             FileInputStream fileInputStream = new FileInputStream(fileClassNameMap);
             Scanner scanner = new Scanner(fileInputStream);
             while (scanner.hasNextLine()) {
@@ -174,7 +175,7 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    public GraphCreator(List<String> completeClassNameList, GraphCreator creator, List<String> jdkList) {
+    public GroumCreator(List<String> completeClassNameList, GroumCreator creator, String globalPath, List<String> jdkList) {
         class_name_map = creator.getClass_name_map();
         class_variable_list = creator.getClass_variable_list();
         class_variable = creator.getClass_variable();
@@ -190,25 +191,30 @@ public class GraphCreator extends GraphConverter {
                 }
             } catch (Exception e) {
                 if (!(e instanceof ClassNotFoundException)) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
                 }
                 //System.err.println(e.getMessage());
             } catch (Error e) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
                 //System.err.println(e.getMessage());
             }
 
         }
-        allClassFieldAndMethodArgumentVariable.addAll(class_variable_list);
+        for (int i = 0; i < class_variable_list.size(); i++) {
+            allClassFieldAndMethodArgumentVariable.add(class_variable_list.get(i));
+        }
 
         try {
-            File fileTypeCast = new File(DataConfig.TYPE_CAST_CONFIG_FILE_PATH);
+            File fileTypeCast = new File(globalPath + "/type_cast.config");
+//            File fileTypeCast = new File(globalPath + "/Extractor/src/main/java/codetree/configs/type_cast.config");
             FileInputStream fileInputStream = new FileInputStream(fileTypeCast);
             Scanner scanner = new Scanner(fileInputStream);
             while (scanner.hasNextLine()) {
                 castMap.put(scanner.nextLine(), true);
             }
-            File fileClassNameMap = new File(DataConfig.CLASS_NAME_MAP_CONFIG_FILE_PATH);
+
+            File fileClassNameMap = new File(globalPath + "/class_name_map.config");
+//            File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/codetree/configs/class_name_map.config");
             fileInputStream = new FileInputStream(fileClassNameMap);
             scanner = new Scanner(fileInputStream);
             while (scanner.hasNextLine()) {
@@ -226,190 +232,171 @@ public class GraphCreator extends GraphConverter {
     }
 
 
-    public Graph getGraph() {
-        return graph;
+    public Groum getGroum() {
+        return groum;
     }
 
-    public void setGraph(Graph graph) {
-        this.graph = graph;
+    public void setGroum(Groum groum) {
+        this.groum = groum;
     }
 
-    public Graph toGraph(Node node) {
-        if (node != null && parsedFlag) {
+    public Groum toGroum(Node node) {
+        if (node != null && parsedFlag && !stopFlag) {
             node.accept(this, null);
-            try {
-                if(graph.getRoot()!=null) {
-                    GraphWriteUtil.show(graph.getRoot(),DataConfig.OUTPUT_GRAPH_PATH);
-                }
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-            return graph;
+            return groum;
         }
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(MethodDeclaration n) {
-        toGraph(n.getBody().get());
-        return graph;
-    }
-
-    protected Graph convert(ConstructorDeclaration n) {
-        toGraph(n.getBody());
-        return graph;
+    protected Groum convert(MethodDeclaration n) {
+        toGroum(n.getBody().isPresent() ? n.getBody().get() : null);
+        return groum;
     }
 
     @Override
-    protected Graph convert(AssertStmt n) {
-        return graph;
+    protected Groum convert(AssertStmt n) {
+        return groum;
     }
 
     @Override
-    protected Graph convert(BlockStmt n) {
+    protected Groum convert(BlockStmt n) {
         List<Node> stmts = n.getChildNodes();
         return convert(stmts);
     }
 
     @Override
-    protected Graph convert(LineComment n) {
-        if (holeFlag && graph.getHoleNode(new ArrayList<>()) == null) {
+    protected Groum convert(LineComment n) {
+        //commentList.add(n.toString());
+        if (holeFlag && groum.getHoleNode() == null) {
             String str = n.toString();
             str = str.replaceAll("\n", "");
             str = str.replaceAll(" ", "");
-            if (str.equals("/*hole*/") || str.equals("//hole") && !stopFlag) {
+            if (str.equals("/*hole*/") || str.equals("//hole")) {
                 stopFlag = true;
-                GraphNode tempNode = lastNode;
-                GraphNode node = new GraphNode();
-                setInfo(node);
+                GroumNode node = new GroumNode();
                 addScope(node);
-                node.setCompleteMethodDeclaration("hole");
-                addNode(node, "unknown");
-                //lastNode = tempNode;
+                node.setCompleteMethodDeclaration("//hole");
+                addNode(node);
             }
         }
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(BlockComment n) {
-        return graph;
-    }
-
-    @Override
-    protected Graph convert(JavadocComment n) {
+    protected Groum convert(BlockComment n) {
         // commentList.add(n.toString());
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(BreakStmt n) {
+    protected Groum convert(JavadocComment n) {
+        // commentList.add(n.toString());
+        return groum;
+    }
+
+    @Override
+    protected Groum convert(BreakStmt n) {
         if (!lastNode.isControl()) {
-            GraphNode node = new GraphNode();
+            GroumNode node = new GroumNode();
             addScope(node);
             node.setStatement(n.toString());
             setNodeClassAndMethod(node, "break", "break", "", "");
             node.setAddMethodName(false);
             node.setExit(false);
-            setInfo(node, n);
-            boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
-            if(addNodeFlag) {
-                lastNode = node;
-            }
+            groum.addNode(lastNode, node, mutexList);
+            lastNode = node;
         }
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(ContinueStmt n) {
+    protected Groum convert(ContinueStmt n) {
         if (!lastNode.isControl()) {
-            GraphNode node = new GraphNode();
+            GroumNode node = new GroumNode();
             addScope(node);
             node.setStatement(n.toString());
             setNodeClassAndMethod(node, "continue", "continue", "", "");
             node.setAddMethodName(false);
             node.setExit(false);
-            setInfo(node, n);
-            boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
-            if(addNodeFlag) {
-                lastNode = node;
-            }
+            groum.addNode(lastNode, node, mutexList);
+            lastNode = node;
         }
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(DoStmt n) {
-        EndFlag endFlag = new EndFlag();
+    protected Groum convert(DoStmt n) {
         addScopeIndex();
         int tempScopeIndex = scopeIndex;
-        GraphNode node = new GraphNode();
+        GroumNode node = new GroumNode();
         addScope(node);
         setNodeClassAndMethod(node, "doWhile", "doWhile", "", "");
         node.setControl(true);
         node.setExit(false);
-        setInfo(node, n);
-        boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
+        groum.addNode(lastNode, node, mutexList);
         //add condition node
-        if(addNodeFlag) {
-            lastNode = node;
-        }
-        GraphNode conditionNode = new GraphNode();
+        lastNode = node;
+        GroumNode conditionNode = new GroumNode();
         addScope(conditionNode);
         setNodeClassAndMethod(conditionNode, "condition", "condition", "", "");
         conditionNode.setAddMethodName(false);
-        addNodeFlag = graph.addNode (lastNode, conditionNode, mutexList, "c");
-        if(addNodeFlag) {
-            lastNode = conditionNode;
-        }
-        markHole(n);
+        groum.addNode(lastNode, conditionNode, mutexList);
+        lastNode = conditionNode;
+        //remove condition node
+        node.getChildNodes().remove(conditionNode);
+        conditionNode.setParentNode(null);
+        lastNode = node;
         conditionFlag = true;
+        markHole(n);
         dealCondition(null, n.getCondition());
         assignFlag = false;
         binaryFlag = false;
         conditionFlag = false;
+        //add end node to represent the end of condition
+        //lastNode = conditionNode;
+        addConditionEndNode();
         // set the current node to be the parent node for the next node
         lastNode = node;
-        addSpecialNode("body");
         // deal with the body in do while
         if (n.getBody() != null && n.getBody().getChildNodes().size() != 0
-                && !isAllAnnotationStmt(n.getBody().getChildNodes(),endFlag)) {
-            toGraph(n.getBody());
+                && !isAllAnnotationStmt(n.getBody().getChildNodes())) {
+            toGroum(n.getBody());
         } else if (n.getBody() instanceof ContinueStmt || n.getBody() instanceof BreakStmt || n.getBody() instanceof ReturnStmt) {
-            toGraph(n.getBody());
+            toGroum(n.getBody());
         } else {
             //todo nothing
         }
-        if (((node.getChildNodes().size() == 2) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
-            //if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
+        if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
             lastNode = node.getParentNode();
-            removeNodeInControlStructure(node, new ArrayList<>());
+            removeNodeInControlStructure(node,new ArrayList<>());
             if (lastNode != null) {
                 lastNode.getChildNodes().remove(node);
-                removeNode(node);
             } else {
-                graph.setRoot(null);//构造数据时需要设置回去
+                groum.setRoot(null);
             }
         } else {
             // add end node
-            if (!endFlag.endFlag) {
-                endFlag.endFlag = true;
+            if (endFlag) {
+                addEndNode();
+            } else {
+                endFlag = true;
             }
             lastNode = node;
         }
         scopeIndexList.remove(Integer.toString(tempScopeIndex));
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(EmptyStmt n) {
+    protected Groum convert(EmptyStmt n) {
         //System.out.println(n);
-        return graph;
+        return groum;
 
     }
 
     @Override
-    public Graph convert(ExpressionStmt n) {
+    public Groum convert(ExpressionStmt n) {
         Expression expr = n.getExpression();
         if (expr != null) {
             if (expr instanceof VariableDeclarationExpr) {
@@ -428,46 +415,38 @@ public class GraphCreator extends GraphConverter {
                 // to do deal with return variable
             }
         }
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(ForEachStmt n) {
-        EndFlag endFlag = new EndFlag();
+    protected Groum convert(ForEachStmt n) {
         addScopeIndex();
         int tempScopeIndex = scopeIndex;
-        ForStmt forStmt = GraphForeachConverter.toForStmt(n);
+        ForStmt forStmt = GroumForeachConverter.toForStmt(n);
         if (forStmt != null) {
             if (n.getVariable().getVariables().size() > 1) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
                 //System.err.println(n.getVariable() + " " + "can not be parsed");
             } else {
                 String temporaryVariable;
                 //deal with for each
-                GraphNode node = new GraphNode();
+                GroumNode node = new GroumNode();
                 addScope(node);
-                setNodeClassAndMethod(node, "for", "for", "", "");
+                setNodeClassAndMethod(node, "foreach", "foreach", "", "");
                 node.setControl(true);
                 node.setExit(false);
-                setInfo(node, n);
-                boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
+                groum.addNode(lastNode, node, mutexList);
                 //add condition node
-                if(addNodeFlag) {
-                    lastNode = node;
-                }
-                GraphNode conditionNode = new GraphNode();
+                lastNode = node;
+                GroumNode conditionNode = new GroumNode();
                 addScope(conditionNode);
                 setNodeClassAndMethod(conditionNode, "condition", "condition", "", "");
                 conditionNode.setAddMethodName(false);
-                addNodeFlag = graph.addNode (lastNode, conditionNode, mutexList, "c");
-                GraphNode newConditionNode = new GraphNode();
-                addScope(newConditionNode);
-                setNodeClassAndMethod(newConditionNode, "condition", "condition", "", "");
-                newConditionNode.setAddMethodName(false);
-                if(addNodeFlag) {
-                    lastNode = conditionNode;
-                }
-                /**GraphNode tempNode = lastNode;**/
+                groum.addNode(lastNode, conditionNode, mutexList);
+                lastNode = conditionNode;
+                // deal with the condition in for each
+            /*deal with variable declaration on the left of ":"*/
+                /**GroumNode tempNode = lastNode;**/
                 removeConditionNodeFlag = true;
                 convert(n.getVariable());
                 removeConditionNodeFlag = false;
@@ -475,17 +454,10 @@ public class GraphCreator extends GraphConverter {
                 //lastNode = lastNode.getParentNode();
                 //lastNode.setChildNodes(new ArrayList<>());
                 //remove condition node
-                /*这里需要先移除condition结点，然后再添加，不然预先处理的init中变量声明结点会被添加上去*/
                 node.getChildNodes().remove(conditionNode);
-                removeNode(conditionNode);
-                conditionNode.setAbsoluteParentNode(null);
-                //conditionNode.setParentNode(null);
+                conditionNode.setParentNode(null);
                 temporaryVariable = class_variable_list.get(class_variable_list.size() - 1);
                 lastNode = node;
-                addNodeFlag = graph.addNode (lastNode, newConditionNode, mutexList, "c");
-                if(addNodeFlag) {
-                    lastNode = newConditionNode;
-                }
                 markHole(n);
                 List<Expression> listExpr = forStmt.getInitialization();
                 if (listExpr != null) {
@@ -499,30 +471,33 @@ public class GraphCreator extends GraphConverter {
                         foreachConditionFlag = false;
                     }
                 }
+                addConditionEndNode();
                 //deal with the body of for each
                 lastNode = node;
-                addSpecialNode("body");
                 if (forStmt.getBody() != null && forStmt.getBody().getChildNodes().size() != 1
-                        && !isAllAnnotationStmt(forStmt.getBody().getChildNodes(),endFlag)) {
+                        && !isAllAnnotationStmt(forStmt.getBody().getChildNodes())) {
                     Statement stmt = forStmt.getBody();
                     if (stmt.getChildNodes().size() > 0) {
                         stmt.getChildNodes().remove(0);
-                        toGraph(stmt);
+                        toGroum(stmt);
                     }
+
+                } else {
                 }
-                if (((node.getChildNodes().size() == 2) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
+                if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
                     lastNode = node.getParentNode();
-                    removeNodeInControlStructure(node, new ArrayList<>());
+                    removeNodeInControlStructure(node,new ArrayList<>());
                     if (lastNode != null) {
                         lastNode.getChildNodes().remove(node);
-                        removeNode(node);
                     } else {
-                        graph.setRoot(null);//构造数据时需要设置回去
+                        groum.setRoot(null);
                     }
                 } else {
                     //add end node
-                    if (!endFlag.endFlag) {
-                        endFlag.endFlag = true;
+                    if (endFlag) {
+                        addEndNode();
+                    } else {
+                        endFlag = true;
                     }
                     lastNode = node;
                 }
@@ -534,60 +509,43 @@ public class GraphCreator extends GraphConverter {
                 variable_line_map.remove(temporaryVariable);
             }
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
             //System.err.println(n + " can not be parsed");
         }
         scopeIndexList.remove(Integer.toString(tempScopeIndex));
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(ForStmt n) {
-        EndFlag endFlag = new EndFlag();
+    protected Groum convert(ForStmt n) {
         addScopeIndex();
         int tempScopeIndex = scopeIndex;
-        GraphNode node = new GraphNode();
+        GroumNode node = new GroumNode();
         addScope(node);
         setNodeClassAndMethod(node, "for", "for", "", "");
         node.setControl(true);
         node.setExit(false);
-        setInfo(node, n);
-        boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
+        groum.addNode(lastNode, node, mutexList);
 
         // add condition node
-        if(addNodeFlag) {
-            lastNode = node;
-        }
-        GraphNode conditionNode = new GraphNode();
+        lastNode = node;
+        GroumNode conditionNode = new GroumNode();
         addScope(conditionNode);
         setNodeClassAndMethod(conditionNode, "condition", "condition", "", "");
         conditionNode.setAddMethodName(false);
-        addNodeFlag = graph.addNode (lastNode, conditionNode, mutexList, "c");
-        if(addNodeFlag) {
-            lastNode = conditionNode;
-        }
-        GraphNode newConditionNode = new GraphNode();
-        addScope(newConditionNode);
-        setNodeClassAndMethod(newConditionNode, "condition", "condition", "", "");
-        newConditionNode.setAddMethodName(false);
-        List<String> variableList = new ArrayList<>();
+        groum.addNode(lastNode, conditionNode, mutexList);
+        lastNode = conditionNode;
         markHole(n);
+        List<String> variableList = new ArrayList<>();
         //deal with condition in for
         /*deal with init*/
         removeConditionNodeFlag = true;
         dealForInitCondition(n, variableList);
         removeConditionNodeFlag = false;
         //remove condition node
-        /*这里需要先移除condition结点，然后再添加，不然预先处理的init中变量声明结点会被添加上去*/
         node.getChildNodes().remove(conditionNode);
-        removeNode(conditionNode);
-        conditionNode.setAbsoluteParentNode(null);
-        //conditionNode.setParentNode(null);
+        conditionNode.setParentNode(null);
         lastNode = node;
-        addNodeFlag = graph.addNode (lastNode, newConditionNode, mutexList, "c");
-        if(addNodeFlag) {
-            lastNode = newConditionNode;
-        }
         //处理init
         List<Expression> listExpr = n.getInitialization();
         if (listExpr != null) {
@@ -616,31 +574,31 @@ public class GraphCreator extends GraphConverter {
                 conditionFlag = false;
             }
         }
+        addConditionEndNode();
         // deal with the body in for
         lastNode = node;
-        addSpecialNode("body");
         if (n.getBody() != null && n.getBody().getChildNodes().size() != 0
-                && !isAllAnnotationStmt(n.getBody().getChildNodes(),endFlag)) {
-            toGraph(n.getBody());
+                && !isAllAnnotationStmt(n.getBody().getChildNodes())) {
+            toGroum(n.getBody());
         } else if (n.getBody() instanceof ContinueStmt || n.getBody() instanceof BreakStmt || n.getBody() instanceof ReturnStmt) {
-            toGraph(n.getBody());
+            toGroum(n.getBody());
         } else {
             //todo nothing
         }
-        if (((node.getChildNodes().size() == 2) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
-            //if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
+        if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
             lastNode = node.getParentNode();
-            removeNodeInControlStructure(node, new ArrayList<>());
+            removeNodeInControlStructure(node,new ArrayList<>());
             if (lastNode != null) {
                 lastNode.getChildNodes().remove(node);
-                removeNode(node);
             } else {
-                graph.setRoot(null);//构造数据时需要设置回去
+                groum.setRoot(null);
             }
         } else {
             // add end node
-            if (!endFlag.endFlag) {
-                endFlag.endFlag = true;
+            if (endFlag) {
+                addEndNode();
+            } else {
+                endFlag = true;
             }
             lastNode = node;
         }
@@ -655,81 +613,66 @@ public class GraphCreator extends GraphConverter {
             }
         }
         scopeIndexList.remove(Integer.toString(tempScopeIndex));
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(IfStmt n) {
-        boolean flag = false;
-        EndFlag endFlag = new EndFlag();
+    protected Groum convert(IfStmt n) {
         addScopeIndex();
         int tempScopeIndex = scopeIndex;
-        GraphNode node = new GraphNode();
+        GroumNode node = new GroumNode();
         addScope(node);
         node.setControl(true);
-        //add info
-        String info = "";
-        // check n.getBegin().isPresent and n.getThenStmt().getEnd.().isPresent
-        info = n.getBegin().get().line + " " + n.getThenStmt().getEnd().get().line + " ";
-        boolean addNodeFlag = false;
         if (lastNode == null || lastNode.getClassName() == null) {
             setNodeClassAndMethod(node, "if", "if", "", "");
-            addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
+            groum.addNode(lastNode, node, mutexList);
             List<String> indexList = new ArrayList<>();
             indexList.add(Integer.toString(scopeIndex));
-            mutexMap.put(node, indexList);
-            info += "if(";
-            flag = true;
+            mutexMap.put(node,indexList);
         } else {
             if (lastNode.getClassName().contains("if") && lastNode.isControl() && elseIfFlag) {
                 setNodeClassAndMethod(node, "elseif", "elseif", "", "");
-                addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
-                dealScope(node, "if");
-                info += "else if(";
+                groum.addNode(lastNode, node, mutexList);
+                dealScope(node,"if");
             } else {
-                flag = true;
                 setNodeClassAndMethod(node, "if", "if", "", "");
-                addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
+                groum.addNode(lastNode, node, mutexList);
                 List<String> indexList = new ArrayList<>();
                 indexList.add(Integer.toString(scopeIndex));
-                mutexMap.put(node, indexList);
-                info += "if(";
+                mutexMap.put(node,indexList);
             }
         }
-        info += n.getCondition().toString();
-        info += ")";
-        info += n.getThenStmt().toString();
-        node.setInfo(info);
         node.setExit(false);
+        //groum.addNode(lastNode, node);
         //add condition node
-        if(addNodeFlag) {
-            lastNode = node;
-        }
-        GraphNode conditionNode = new GraphNode();
+        lastNode = node;
+        GroumNode conditionNode = new GroumNode();
         addScope(conditionNode);
         setNodeClassAndMethod(conditionNode, "condition", "condition", "", "");
         conditionNode.setAddMethodName(false);
-        addNodeFlag = graph.addNode (lastNode, conditionNode, mutexList, "c");
-        if(addNodeFlag) {
-            lastNode = conditionNode;
-        }
-        markHole(n);
+        groum.addNode(lastNode, conditionNode, mutexList);
+        lastNode = conditionNode;
+        //remove condition node
+        node.getChildNodes().remove(conditionNode);
+        conditionNode.setParentNode(null);
+        lastNode = node;
         conditionFlag = true;
+        markHole(n);
         dealCondition(null, n.getCondition());
         assignFlag = false;
         binaryFlag = false;
         conditionFlag = false;
+        //add end node to represent the end of condition
+        //lastNode = conditionNode;
+        addConditionEndNode();
         // deal with ifthen body
         lastNode = node;
-        //if("if".equals(node.getCompleteMethodDeclaration())){
-        addSpecialNode("then");
-        //}
         elseIfFlag = false;
         if (n.getThenStmt() != null && n.getThenStmt().getChildNodes().size() != 0
-                && !isAllAnnotationStmt(n.getThenStmt().getChildNodes(),endFlag)) {
-            toGraph(n.getThenStmt());
+                && !isAllAnnotationStmt(n.getThenStmt().getChildNodes())) {
+            toGroum(n.getThenStmt());
         } else if (n.getThenStmt() instanceof ContinueStmt || n.getThenStmt() instanceof BreakStmt || n.getThenStmt() instanceof ReturnStmt) {
-            toGraph(n.getThenStmt());
+            toGroum(n.getThenStmt());
         } else {
             //todo nothing
         }
@@ -742,18 +685,15 @@ public class GraphCreator extends GraphConverter {
         } else if (node.getCompleteClassName().equals("elseif")) {
             dealHoleParentNode(node);
             node.setHoleParentNode(holeParentNode);
-            if (((node.getChildNodes().size() == 1) && "condition".equals(node.getChildNodes().get(0).getCompleteMethodDeclaration()))
-                    || ((node.getChildNodes().size() == 2) && judgeConditionEnd(node))|| isControlUnitWillBeEmpty(node)) {
-                // if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
+            if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
                 lastNode = node.getParentNode();
-                removeNodeInControlStructure(node, new ArrayList<>());
+                removeNodeInControlStructure(node,new ArrayList<>());
                 if (lastNode != null) {
                     lastNode.getChildNodes().remove(node);
-                    removeNode(node);
                     node = lastNode;
                 } else {
-                    parsedFlag = false;//构造数据时得设置回去
-                    graph.setRoot(null);//构造数据时需要设置回去
+                    parsedFlag = false;
+                    groum.setRoot(null);
                 }
             } else {
                 endParentNode = lastNode;
@@ -763,203 +703,170 @@ public class GraphCreator extends GraphConverter {
         // deal with elsethen body
         if (n.getElseStmt().isPresent()) {
             lastNode = node;
-            if (n.getElseStmt().get().isIfStmt()) {
+            if (n.getElseStmt().get() instanceof IfStmt) {
                 elseIfFlag = true;
-                toGraph(n.getElseStmt().isPresent() ? n.getElseStmt().get() : null);
+                toGroum(n.getElseStmt().get());
                 lastNode = node;
                 if (lastNode.getCompleteClassName().equals("if")) {
-                    if (((lastNode.getChildNodes().size() == 1) && "condition".equals(lastNode.getChildNodes().get(0).getCompleteMethodDeclaration()))
-                            || ((lastNode.getChildNodes().size() == 2) && judgeConditionEnd(lastNode))|| isControlUnitWillBeEmpty(lastNode)) {
-                        //if (((lastNode.getChildNodes().size() == 1) && judgeConditionEnd(lastNode)) || isControlUnitWillBeEmpty(lastNode)) {
+                    if (((lastNode.getChildNodes().size() == 1) && judgeConditionEnd(lastNode)) || isControlUnitWillBeEmpty(lastNode)) {
                         lastNode = lastNode.getParentNode();
-                        removeNodeInControlStructure(node, new ArrayList<>());
+                        removeNodeInControlStructure(node,new ArrayList<>());
                         if (lastNode != null) {
                         } else {
-                            graph.setRoot(null);//构造数据时需要设置回去
+                            groum.setRoot(null);
                         }
                     }
                 }
             } else {
-                endFlag.endFlag = true;
                 addScopeIndex();
                 int tempScopeIndex2 = scopeIndex;
                 elseIfFlag = false;
-                GraphNode elseNode = new GraphNode();
+                GroumNode elseNode = new GroumNode();
                 addScope(elseNode);
                 setNodeClassAndMethod(elseNode, "else", "else", "", "");
                 elseNode.setControl(true);
-                addNodeFlag = graph.addNode (node, elseNode, mutexList, "c");
-                dealScope(elseNode, "if");
-                GraphNode tempNode = elseNode;
+                groum.addNode(node, elseNode, mutexList);
+                dealScope(elseNode,"if");
+                GroumNode tempNode = elseNode;
                 dealHoleParentNode(elseNode);
                 elseNode.setHoleParentNode(holeParentNode);
                 //System.err.println(holeParentNode.toString());
-                if(addNodeFlag) {
-                    lastNode = elseNode;
-                }
-                //add info
-                String elseInfo = "";
-                // check n.getBegin().isPresent and n.getThenStmt().getEnd.().isPresent
-                elseInfo = n.getElseStmt().get().getBegin().get().line + " " + n.getElseStmt().get().getEnd().get().line + " ";
-                elseInfo += "else";
-                elseInfo += n.getElseStmt().toString();
-                elseNode.setInfo(elseInfo);
+                lastNode = elseNode;
                 if (n.getElseStmt().isPresent() && n.getElseStmt().get().getChildNodes().size() != 0
-                        && !isAllAnnotationStmt(n.getElseStmt().get().getChildNodes(), endFlag)) {
-                    toGraph(n.getElseStmt().isPresent() ? n.getElseStmt().get() : null);
-                } else if (n.getElseStmt().get().isContinueStmt() || n.getElseStmt().get().isBreakStmt() || n.getElseStmt().get().isReturnStmt()) {
-                    toGraph(n.getElseStmt().get());
+                        && !isAllAnnotationStmt(n.getElseStmt().get().getChildNodes())) {
+                    toGroum(n.getElseStmt().get());
+                } else if (n.getElseStmt().get() instanceof ContinueStmt || n.getElseStmt().get() instanceof BreakStmt || n.getElseStmt().get() instanceof ReturnStmt) {
+                    toGroum(n.getElseStmt().get());
                 } else {
                     //todo nothing
                 }
                 scopeIndexList.remove(Integer.toString(tempScopeIndex2));
                 if ((elseNode.getChildNodes().size() == 0) || isControlUnitWillBeEmpty(elseNode)) {
-                    GraphNode parentNode = elseNode.getParentNode();
+                    GroumNode parentNode = elseNode.getParentNode();
                     lastNode = parentNode;
-                    removeNodeInControlStructure(elseNode, new ArrayList<>());
+                    removeNodeInControlStructure(elseNode,new ArrayList<>());
                     lastNode.getChildNodes().remove(elseNode);
-                    removeNode(elseNode);
-                    if (((lastNode.getChildNodes().size() == 1) && "condition".equals(lastNode.getChildNodes().get(0).getCompleteMethodDeclaration()))
-                            || ((lastNode.getChildNodes().size() == 2) && judgeConditionEnd(lastNode))|| isControlUnitWillBeEmpty(lastNode)) {
-//                    if (((lastNode.getChildNodes().size() == 1) && judgeConditionEnd(lastNode)) || isControlUnitWillBeEmpty(lastNode)) {
-                        GraphNode removeNode = lastNode.getParentNode();
-                        removeNodeInControlStructure(lastNode, new ArrayList<>());
+                    if (((lastNode.getChildNodes().size() == 1) && judgeConditionEnd(lastNode)) || isControlUnitWillBeEmpty(lastNode)) {
+                        GroumNode removeNode = lastNode.getParentNode();
+                        removeNodeInControlStructure(lastNode,new ArrayList<>());
                         if (removeNode != null) {
                             removeNode.getChildNodes().remove(lastNode);
-                            removeNode(lastNode);
                             lastNode = removeNode;
                         } else {
                             lastNode = null;
-                            graph.setRoot(null);//构造数据时需要设置回去
+                            groum.setRoot(null);
                         }
                     } else {
-                        if (endFlag.endFlag) {
+                        if (endFlag) {
                             lastNode = endParentNode;
-                            if (endParentNode == null){
-                                parsedFlag = false;//构造数据时得设置回去
+                            if (endParentNode != null) {
+                                addEndNode();
+                            } else {
+                                parsedFlag = false;
                             }
                         } else {
-                            endFlag.endFlag = true;
+                            endFlag = true;
                         }
                         lastNode = node;
                     }
                 } else {
                     //add end node
-                    if (!endFlag.endFlag) {
-                        endFlag.endFlag = true;
+                    if (endFlag) {
+                        addEndNode();
+                    } else {
+                        endFlag = true;
                     }
                     //lastNode = elseNode;
                     lastNode = node;
                 }
             }
         } else {
-            if (((node.getChildNodes().size() == 1) && "condition".equals(node.getChildNodes().get(0).getCompleteMethodDeclaration()))
-                    || ((node.getChildNodes().size() == 2) && judgeConditionEnd(node))|| isControlUnitWillBeEmpty(node)) {
+            if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
                 lastNode = node.getParentNode();
-                removeNodeInControlStructure(node, new ArrayList<>());
+                removeNodeInControlStructure(node,new ArrayList<>());
                 if (lastNode != null) {
                     lastNode.getChildNodes().remove(node);
-                    removeNode(node);
                 } else {
-                    graph.setRoot(null);//构造数据时需要设置回去
+                    groum.setRoot(null);
                 }
             } else {
                 //add end node
-                if (endFlag.endFlag) {
+                if (endFlag) {
                     lastNode = endParentNode;
-                    if (lastNode == null) {
-                        parsedFlag = false;//构造数据时得设置回去
+                    if (lastNode != null) {
+                        addEndNode();
+                    } else {
+                        parsedFlag = false;
                     }
                 } else {
-                    endFlag.endFlag = true;
+                    endFlag = true;
                 }
                 lastNode = node;
                 elseIfFlag = false;
             }
         }
-        if (node.getCompleteMethodDeclaration().equals("if")) {
-            mutexList.remove(node);
+        if(node.getCompleteMethodDeclaration().equals("if")){
+           mutexList.remove(node);
         }
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(LabeledStmt n) {
-        parsedFlag = false;//构造数据时得设置回去
+    protected Groum convert(LabeledStmt n) {
+        parsedFlag = false;
         //System.err.println(n + " " + "can not be parsed");
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(ReturnStmt n) {
-        boolean infoFlag = false;
-        if (lastInfo == null) {
-            lastInfo = n.getBegin().get().line + " " + n.getEnd().get().line + " " + n.toString();
-            infoFlag = true;
-        }
-        GraphNode tempNode = lastNode;
+    protected Groum convert(ReturnStmt n) {
+        GroumNode tempNode = lastNode;
         //处理return的返回语句
         dealReturnExpr(n.getExpression().isPresent() ? n.getExpression().get() : null);
         //判断是否增加return结点
         if (lastNode != null && !lastNode.equals(tempNode)) {
             if (!lastNode.isControl()) {
-                GraphNode node = new GraphNode();
+                GroumNode node = new GroumNode();
                 addScope(node);
                 node.setStatement(n.toString());
                 setNodeClassAndMethod(node, "return", "return", "", "");
                 node.setAddMethodName(false);
                 node.setExit(true);
-                setInfo(node, n);
-                boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
-                if(addNodeFlag) {
-                    lastNode = node;
-                }
+                groum.addNode(lastNode, node, mutexList);
+                lastNode = node;
             }
         }
-        if (infoFlag) {
-            lastInfo = null;
-        }
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(SynchronizedStmt n) {
-        parsedFlag = false;//构造数据时得设置回去
+    protected Groum convert(SynchronizedStmt n) {
+        parsedFlag = false;
         //System.err.println(n + " " + "can not be parsed");
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(TryStmt n) {
-        EndFlag endFlag = new EndFlag();
+    protected Groum convert(TryStmt n) {
         addScopeIndex();
         int tryScopeIndex = scopeIndex;
         boolean flag = true;
         //add try node
-        GraphNode tryNode = new GraphNode();
+        GroumNode tryNode = new GroumNode();
         addScope(tryNode);
         setNodeClassAndMethod(tryNode, "try", "try", "", "");
         tryNode.setControl(true);
-        //add try info
-        String tryInfo = "";
-        // check n.getBegin().isPresent and n.getThenStmt().getEnd.().isPresent
-        tryInfo = n.getBegin().get().line + " " + n.getEnd().get().line + " ";
-        tryInfo += "try";
-        tryInfo += n.getTryBlock().toString();
-        tryNode.setInfo(tryInfo);
-        boolean addNodeFlag = graph.addNode (lastNode, tryNode, mutexList, "c");
+        groum.addNode(lastNode, tryNode, mutexList);
         List<String> indexList = new ArrayList<>();
         indexList.add(Integer.toString(scopeIndex));
-        mutexMap.put(tryNode, indexList);
+        mutexMap.put(tryNode,indexList);
         //get the body of try node
         if (n.getResources().size() == 0) {
-            if (n.getTryBlock().getChildNodes().size() == 0 || isAllAnnotationStmt(n.getTryBlock().getChildNodes(),endFlag)) {
+            if (n.getTryBlock().getChildNodes().size() == 0 || isAllAnnotationStmt(n.getTryBlock().getChildNodes())) {
                 //todo nothing
             } else {
-                if(addNodeFlag) {
-                    lastNode = tryNode;
-                }
-                toGraph(n.getTryBlock());
+                lastNode = tryNode;
+                toGroum(n.getTryBlock());
             }
             scopeIndexList.remove(Integer.toString(tryScopeIndex));
             holeParentNode = lastNode;
@@ -970,27 +877,15 @@ public class GraphCreator extends GraphConverter {
             List<CatchClause> catchList = n.getCatchClauses();
             if (catchList != null) {
                 for (int i = 0; i < catchList.size(); i++) {
-                    endFlag.endFlag = true;
                     addScopeIndex();
                     int catchScopeIndex = scopeIndex;
-                    GraphNode catchNode = new GraphNode();
+                    GroumNode catchNode = new GroumNode();
                     addScope(catchNode);
                     setNodeClassAndMethod(catchNode, "catch", "catch", "", "");
                     catchNode.setControl(true);
-                    //add catch info
-                    String catchInfo = "";
-                    // check n.getBegin().isPresent and n.getThenStmt().getEnd.().isPresent
-                    catchInfo = catchList.get(i).getBegin().get().line + " " + catchList.get(i).getEnd().get().line + " ";
-                    catchInfo += "catch(";
-                    catchInfo += catchList.get(i).getParameter().toString();
-                    catchInfo += ")";
-                    catchInfo += catchList.get(i).getBody();
-                    catchNode.setInfo(catchInfo);
-                    addNodeFlag = graph.addNode (lastNode, catchNode, mutexList, "c");
-                    dealScope(catchNode, "try");
-                    if(addNodeFlag) {
-                        lastNode = catchNode;
-                    }
+                    groum.addNode(lastNode, catchNode, mutexList);
+                    dealScope(catchNode,"try");
+                    lastNode = catchNode;
                     //将catch(Exception e)中的e当做用户自定义类处理
                     List<String> variableList = new ArrayList<>();
                     if (catchList.get(i).getParameter().getName() != null) {
@@ -1002,10 +897,11 @@ public class GraphCreator extends GraphConverter {
                             userClassProcessing.addUserClass("userDefinedClass");
                         }
                     }
-                    toGraph(catchList.get(i).getBody());
+                    toGroum(catchList.get(i).getBody());
                     scopeIndexList.remove(Integer.toString(catchScopeIndex));
                     dealHoleParentNode(catchNode);
                     catchNode.setHoleParentNode(holeParentNode);
+                    //remove temporary variables
                     if (variableList.size() > 0) {
                         for (int k = 0; k < variableList.size(); k++) {
                             String type = class_variable.get(variableList.get(k));
@@ -1020,42 +916,32 @@ public class GraphCreator extends GraphConverter {
                         flag = false;
                     } else {
                         lastNode = catchNode.getParentNode();
-                        removeNodeInControlStructure(catchNode, new ArrayList<>());
+                        removeNodeInControlStructure(catchNode,new ArrayList<>());
                         if (lastNode != null) {
                             lastNode.getChildNodes().remove(catchNode);
-                            removeNode(catchNode);
                         } else {
-                            graph.setRoot(null);//构造数据时需要设置回去
-                            parsedFlag = false;//构造数据时得设置回去
+                            groum.setRoot(null);
+                            parsedFlag = false;
                         }
                     }
                 }
             }
             // add finally node if exits
             /*lastNode = catchNode;*/
-            if (n.getFinallyBlock().isPresent()) {
+            if (n.getFinallyBlock() != null) {
                 addScopeIndex();
                 int finallyScopeIndex = scopeIndex;
-                GraphNode finallyNode = new GraphNode();
+                GroumNode finallyNode = new GroumNode();
                 addScope(finallyNode);
                 setNodeClassAndMethod(finallyNode, "finally", "finally", "", "");
                 finallyNode.setControl(true);
-                //add finally info
-                String finallyInfo = "";
-                // check n.getBegin().isPresent and n.getThenStmt().getEnd.().isPresent
-                finallyInfo = n.getFinallyBlock().get().getBegin().get().line + " " + n.getFinallyBlock().get().getBegin().get().line + " ";
-                finallyInfo += "finally";
-                finallyInfo += n.getFinallyBlock().toString();
-                finallyNode.setInfo(finallyInfo);
-                addNodeFlag = graph.addNode (lastNode, finallyNode, mutexList, "c");
-                dealScope(finallyNode, "try");
-                if(addNodeFlag) {
-                    lastNode = finallyNode;
-                }
-                if (n.getFinallyBlock().get().getChildNodes().size() == 0 || isAllAnnotationStmt(n.getFinallyBlock().get().getChildNodes(),endFlag)) {
+                groum.addNode(lastNode, finallyNode, mutexList);
+                dealScope(finallyNode,"try");
+                lastNode = finallyNode;
+                if (n.getFinallyBlock().get().getChildNodes().size() == 0 || isAllAnnotationStmt(n.getFinallyBlock().get().getChildNodes())) {
                     //todo nothing
                 } else {
-                    toGraph(n.getFinallyBlock().isPresent() ? n.getFinallyBlock().get() : null);
+                    toGroum(n.getFinallyBlock().isPresent() ? n.getFinallyBlock().get() : null);
                 }
                 scopeIndexList.remove(Integer.toString(finallyScopeIndex));
                 dealHoleParentNode(finallyNode);
@@ -1063,50 +949,46 @@ public class GraphCreator extends GraphConverter {
                 if (finallyNode.getChildNodes().size() != 0 && !isControlUnitWillBeEmpty(finallyNode)) {
                     if (finallyNode.getParentNode().getCompleteClassName().equals("try")) {
                         tryNode.getChildNodes().remove(finallyNode);
-                        removeNode(finallyNode);
-                        GraphNode catchNode = new GraphNode();
+                        GroumNode catchNode = new GroumNode();
                         addScope(catchNode);
                         setNodeClassAndMethod(catchNode, "catch", "catch", "", "");
                         catchNode.setControl(true);
                         catchNode.setHoleParentNode(finallyNode.getHoleParentNode());
                         finallyNode.setHoleParentNode(catchNode);
-                        addNodeFlag = graph.addNode (tryNode, catchNode, mutexList, "c");
-                        addNodeFlag = graph.addNode (catchNode, finallyNode, mutexList, "c");
+                        groum.addNode(tryNode, catchNode, mutexList);
+                        groum.addNode(catchNode, finallyNode, mutexList);
                     } else if (finallyNode.getParentNode().getCompleteClassName().equals("catch")) {
                         //to do nothing
                     } else {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
                     }
-                    if (!endFlag.endFlag) {
-                        endFlag.endFlag = true;
+                    if (endFlag) {
+                        addEndNode();
+                    } else {
+                        endFlag = true;
                     }
                     lastNode = tryNode;
                     flag = false;
                 } else {
                     lastNode = finallyNode.getParentNode();
-                    removeNodeInControlStructure(finallyNode, new ArrayList<>());
+                    removeNodeInControlStructure(finallyNode,new ArrayList<>());
                     if (lastNode != null) {
                         lastNode.getChildNodes().remove(finallyNode);
-                        removeNode(finallyNode);
                         if (lastNode.getCompleteClassName().equals("catch")) {
                             lastNode = endParentNode;
-                            if (!endFlag.endFlag) {
-                                endFlag.endFlag = true;
-                            }
+                            addEndNode();
                             lastNode = tryNode;
                             flag = false;
                         }
                     } else {
-                        graph.setRoot(null);//构造数据时需要设置回去
-                        parsedFlag = false;//构造数据时得设置回去
+                        groum.setRoot(null);
+                        parsedFlag = false;
                     }
                 }
             } else {
                 if (lastNode.getCompleteClassName().equals("catch")) {
                     lastNode = endParentNode;
-                    if (!endFlag.endFlag){
-                        endFlag.endFlag = true;
-                    }
+                    addEndNode();
                     lastNode = tryNode;
                     flag = false;
                 }
@@ -1114,178 +996,182 @@ public class GraphCreator extends GraphConverter {
             //judge whether to remove try node or not (if preserve try whether need to add catch node)
             if (tryNode.getChildNodes().size() != 0 && !isControlUnitWillBeEmpty(tryNode)) {
                 if (flag) {//add catch node
-                    GraphNode catchNode = new GraphNode();
+                    GroumNode catchNode = new GroumNode();
                     addScope(catchNode);
                     setNodeClassAndMethod(catchNode, "catch", "catch", "", "");
                     catchNode.setControl(true);
                     catchNode.setHoleParentNode(tryNode.getHoleParentNode());
-                    addNodeFlag = graph.addNode (tryNode, catchNode, mutexList, "c");
+                    groum.addNode(tryNode, catchNode, mutexList);
                     lastNode = catchNode;
-                    if (!endFlag.endFlag) {
-                        endFlag.endFlag = true;
-                    }
+                    addEndNode();
                     lastNode = tryNode;
                 }
             } else {
                 lastNode = tryNode.getParentNode();
-                removeNodeInControlStructure(tryNode, new ArrayList<>());
+                removeNodeInControlStructure(tryNode,new ArrayList<>());
                 if (lastNode != null) {
                     lastNode.getChildNodes().remove(tryNode);
-                    removeNode(tryNode);
                 } else {
-                    graph.setRoot(null);//构造数据时需要设置回去
+                    groum.setRoot(null);
                 }
             }
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
             //System.err.println(n + " " + "can not be parsed");
         }
         mutexList.remove(tryNode);
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(WhileStmt n) {
-        EndFlag endFlag = new EndFlag();
+    protected Groum convert(TypeDeclaration n) {
+        return groum;
+    }
+
+    @Override
+    protected Groum convert(WhileStmt n) {
         addScopeIndex();
         int tempScopeIndex = scopeIndex;
-        GraphNode node = new GraphNode();
+        GroumNode node = new GroumNode();
         addScope(node);
         setNodeClassAndMethod(node, "while", "while", "", "");
         node.setControl(true);
         node.setExit(false);
-        //add info
-        setInfo(node, n);
-        boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
+        groum.addNode(lastNode, node, mutexList);
         //add condition node
         lastNode = node;
-        GraphNode conditionNode = new GraphNode();
+        GroumNode conditionNode = new GroumNode();
         addScope(conditionNode);
         setNodeClassAndMethod(conditionNode, "condition", "condition", "", "");
         conditionNode.setAddMethodName(false);
-        addNodeFlag = graph.addNode (lastNode, conditionNode, mutexList, "c");
-        if(addNodeFlag) {
-            lastNode = conditionNode;
-        }
-        markHole(n);
+        groum.addNode(lastNode, conditionNode, mutexList);
+        lastNode = conditionNode;
+        //remove condition node
+        node.getChildNodes().remove(conditionNode);
+        conditionNode.setParentNode(null);
+        lastNode = node;
         conditionFlag = true;
+        markHole(n);
         dealCondition(null, n.getCondition());
         assignFlag = false;
         binaryFlag = false;
         conditionFlag = false;
+        //add end node to represent the end of condition
+        //lastNode = conditionNode;
+        addConditionEndNode();
         lastNode = node;
-        addSpecialNode("body");
         if (n.getBody() != null && n.getBody().getChildNodes().size() != 0
-                && !isAllAnnotationStmt(n.getBody().getChildNodes(),endFlag)) {
-            toGraph(n.getBody());
+                && !isAllAnnotationStmt(n.getBody().getChildNodes())) {
+            toGroum(n.getBody());
         } else if (n.getBody() instanceof ContinueStmt || n.getBody() instanceof BreakStmt || n.getBody() instanceof ReturnStmt) {
-            toGraph(n.getBody());
+            toGroum(n.getBody());
         } else {
             //todo nothing
         }
-        if (((node.getChildNodes().size() == 2) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
-            //if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
+        if (((node.getChildNodes().size() == 1) && judgeConditionEnd(node)) || isControlUnitWillBeEmpty(node)) {
             lastNode = node.getParentNode();
-            removeNodeInControlStructure(node, new ArrayList<>());
+            removeNodeInControlStructure(node,new ArrayList<>());
             if (lastNode != null) {
                 lastNode.getChildNodes().remove(node);
-                removeNode(node);
             } else {
-                graph.setRoot(null);//构造数据时需要设置回去
+                groum.setRoot(null);
             }
         } else {
             //add end node
-            if (!endFlag.endFlag) {
-                endFlag.endFlag = true;
+            if (endFlag) {
+                addEndNode();
+            } else {
+                endFlag = true;
             }
             lastNode = node;
         }
+        //   contorlStatementFlag = true;
+        //   controlNode = node;
         scopeIndexList.remove(Integer.toString(tempScopeIndex));
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(ExplicitConstructorInvocationStmt n) {
-        parsedFlag = false;//构造数据时得设置回去
-        return graph;
+    protected Groum convert(ExplicitConstructorInvocationStmt n) {
+        parsedFlag = false;
+        //System.err.println(n + " " + "can not be parsed");
+        return groum;
     }
 
     @Override
-    protected Graph convert(SwitchStmt n) {
-        EndFlag endFlag = new EndFlag();
+    protected Groum convert(SwitchStmt n) {
         addScopeIndex();
         int switchScopeIndex = scopeIndex;
-        List<GraphNode> removeNodeList = new ArrayList<>();
-        GraphNode switchNode = new GraphNode();
+        List<GroumNode> removeNodeList = new ArrayList<>();
+        GroumNode switchNode = new GroumNode();
         addScope(switchNode);
         setNodeClassAndMethod(switchNode, "switch", "switch", "", "");
         switchNode.setControl(true);
-        //add switch info
-        setInfo(switchNode, n);
-        boolean addNodeFlag = graph.addNode (lastNode, switchNode, mutexList, "c");
+        groum.addNode(lastNode, switchNode, mutexList);
         List<String> indexList = new ArrayList<>();
-        //   indexList.add(Integer.toString(scopeIndex));
-        mutexMap.put(switchNode, indexList);
+     //   indexList.add(Integer.toString(scopeIndex));
+        mutexMap.put(switchNode,indexList);
         //deal condition in switch
         /*add condition node*/
         lastNode = switchNode;
-        GraphNode switchConditionNode = new GraphNode();
+        GroumNode switchConditionNode = new GroumNode();
         addScope(switchConditionNode);
         setNodeClassAndMethod(switchConditionNode, "condition", "condition", "", "");
         switchConditionNode.setAddMethodName(false);
-        addNodeFlag = graph.addNode (lastNode, switchConditionNode, mutexList, "c");
+        groum.addNode(lastNode, switchConditionNode, mutexList);
         lastNode = switchConditionNode;
-//        lastNode = switchNode;
+        //remove condition node
+        switchNode.getChildNodes().remove(switchConditionNode);
+        switchConditionNode.setParentNode(null);
+        /*deal condition*/
+        lastNode = switchNode;
         conditionFlag = true;
         markHole(n);
         dealCondition(null, n.getSelector());
         assignFlag = false;
         binaryFlag = false;
         conditionFlag = false;
+        addConditionEndNode();
         lastNode = switchNode;
         holeParentNode = lastNode;
         if (n.getEntries().size() > 8) {
-            parsedFlag = false;//构造数据时得设置回去
-            //return null;
+            parsedFlag = false;
+            return null;
             //System.err.println("too many case nodes");
         }
         //add case and default node
         for (SwitchEntry entry : n.getEntries()) {
             if (entry.getLabels() != null) {
-                GraphNode conditionNode = new GraphNode();
+                GroumNode conditionNode = new GroumNode();
                 setNodeClassAndMethod(conditionNode, "case", "case", "", "");
                 conditionNode.setControl(true);
-                addNodeFlag = graph.addNode (switchNode, conditionNode, mutexList, "c");
-                //switchNode.getChildNodes().add(conditionNode);
-                //conditionNode.setParentNode(switchNode);
+                switchNode.getChildNodes().add(conditionNode);
+                conditionNode.setParentNode(switchNode);
             } else {
-                GraphNode conditionNode = new GraphNode();
+                GroumNode conditionNode = new GroumNode();
                 setNodeClassAndMethod(conditionNode, "default", "default", "", "");
                 conditionNode.setControl(true);
-                addNodeFlag = graph.addNode (switchNode, conditionNode, mutexList, "c");
-                //switchNode.getChildNodes().add(conditionNode);
-                //conditionNode.setParentNode(switchNode);
+                switchNode.getChildNodes().add(conditionNode);
+                conditionNode.setParentNode(switchNode);
             }
         }
         //deal case and default body
         for (int i = 1; i < switchNode.getChildNodes().size(); i++) {
             lastNode = switchNode.getChildNodes().get(i);
-            setInfo(switchNode.getChildNodes().get(i), n.getEntries().get(i - 1));
             List<Node> childrenNodes = n.getEntries().get(i - 1).getChildNodes();
             //deal with case node, if it is finally node, do nothing
             if (lastNode.getCompleteClassName().equals("case")) {
                 if (childrenNodes.size() == 0) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
                 } else {
                     childrenNodes.remove(0);
                 }
             }
-            endFlag.endFlag = true;
-            if (n.getEntries().get(i - 1).getStatements() != null && !isAllAnnotationStmt(childrenNodes,endFlag)) {
+            if (n.getEntries().get(i - 1).getStatements() != null && !isAllAnnotationStmt(childrenNodes)) {
                 addScopeIndex();
                 int tempIndex = scopeIndex;
                 addScope(switchNode.getChildNodes().get(i));
-                dealScope(switchNode.getChildNodes().get(i), "switch");
+                dealScope(switchNode.getChildNodes().get(i),"switch");
                 convert(childrenNodes);
                 scopeIndexList.remove(Integer.toString(tempIndex));
                 dealHoleParentNode(switchNode.getChildNodes().get(i));
@@ -1302,78 +1188,66 @@ public class GraphCreator extends GraphConverter {
         }
         for (int i = 0; i < removeNodeList.size(); i++) {
             switchNode.getChildNodes().remove(removeNodeList.get(i));
-            removeNode(removeNodeList.get(i));
-            removeNodeInControlStructure(removeNodeList.get(i), new ArrayList<>());
+            removeNodeInControlStructure(removeNodeList.get(i),new ArrayList<>());
             removeNodeList.get(i).setParentNode(null);
-            switchNode.getEdgeMap().remove(removeNodeList.get(i));
         }
-        if (((switchNode.getChildNodes().size() == 1) && switchNode.getChildNodes().get(0).getCompleteMethodDeclaration().equals("condition")) || isControlUnitWillBeEmpty(switchNode)) {
-            //if (((switchNode.getChildNodes().size() == 1) && judgeConditionEnd(switchNode)) || isControlUnitWillBeEmpty(switchNode)) {
+        if (((switchNode.getChildNodes().size() == 1) && judgeConditionEnd(switchNode)) || isControlUnitWillBeEmpty(switchNode)) {
             lastNode = switchNode.getParentNode();
-            removeNodeInControlStructure(switchNode, new ArrayList<>());
+            removeNodeInControlStructure(switchNode,new ArrayList<>());
             if (lastNode != null) {
                 lastNode.getChildNodes().remove(switchNode);
-                removeNode(switchNode);
             } else {
-                graph.setRoot(null);//构造数据时需要设置回去
+                groum.setRoot(null);
             }
         } else {
             //add end node
-            if (endFlag.endFlag) {
+            if (endFlag) {
                 lastNode = endParentNode;
                 if (lastNode == null) {
                     lastNode = switchNode;
                 }
+                addEndNode();
             } else {
-                endFlag.endFlag = true;
+                endFlag = true;
             }
             lastNode = switchNode;
         }
+        //      contorlStatementFlag = true;
+        //      controlNode = switchNode;
         scopeIndexList.remove(Integer.toString(switchScopeIndex));
         mutexMap.remove(switchNode);
-        return graph;
+        return groum;
     }
 
     @Override
-    protected Graph convert(ThrowStmt n) {
-        return graph;
+    protected Groum convert(ThrowStmt n) {
+        return groum;
     }
-
 
     @Override
-    protected Graph newInstance(Node n) {
-        return graph;
+    protected Groum newInstance(Node n) {
+        return groum;
     }
 
-    private Graph convert(List<Node> stmts) {
+    private Groum convert(List<Node> stmts) {
         for (Node stmt : CollectionUtils.nullToEmpty(stmts)) {
             String str = stmt.toString();
             str = str.replaceAll(" ", "");
-            if ((str.startsWith("/*hole*/") || str.startsWith("//hole")) && holeFlag && !stopFlag) {
+            if ((str.startsWith("/*hole*/") || str.startsWith("//hole")) && holeFlag) {
                 stopFlag = true;
-                // todo: modify to @Code: if (graph.getRoot() == null || graph.getHoleNode(new ArrayList<>()) == null)
-                if ((graph.getRoot() != null && graph.getHoleNode(new ArrayList<>()) == null) || graph.getRoot() == null) {
-                    GraphNode tempNode = lastNode;
-                    GraphNode node = new GraphNode();
+                if ((groum.getRoot() != null && groum.getHoleNode() == null) || groum.getRoot() == null) {
+                    GroumNode node = new GroumNode();
                     addScope(node);
-                    setInfo(node);
-                    node.setCompleteMethodDeclaration("hole");
-                    addNode(node, "unknown");
-                    //lastNode = tempNode;
+                    node.setCompleteMethodDeclaration("//hole");
+                    addNode(node);
                 }
             }
-            toGraph(stmt);
+            toGroum(stmt);
         }
-        return graph;
+        return groum;
     }
 
-    public Graph convert(VariableDeclarationExpr n) {
-        //add info
-        boolean infoFlag = false;
-        if (lastInfo == null) {
-            lastInfo = constructInfo(n);
-            infoFlag = true;
-        }
+    public Groum convert(VariableDeclarationExpr n) {
         for (int i = 0; i < n.getVariables().size(); i++) {
             variableCount += 1;
             binaryFlag = false;
@@ -1389,7 +1263,7 @@ public class GraphCreator extends GraphConverter {
                 type2 = type1;
                 type3 = type1;
                 if (n.getCommonType().toString().contains("[")) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
                     //System.err.println(n.toString() + " can not be parsed");
                 }
             }
@@ -1398,28 +1272,26 @@ public class GraphCreator extends GraphConverter {
                 type1 = strs[strs.length - 1];
                 type2 = type1;
             }
-            // todo: why check on @code: {contains("[")} ?
-            String currentVariableName = n.getVariables().get(i).getName().toString();
-            if (currentVariableName.contains("[")) {
-                int index = currentVariableName.indexOf("[");
-                String str = currentVariableName.substring(index);
-                class_variable.put(currentVariableName, type1 + str);
-                variableName = currentVariableName;
-                variable_line_map.put(currentVariableName, n.getEnd().isPresent()? n.getEnd().get().line : 0);
+            if (n.getVariables().get(i).getName().toString().contains("[")) {
+                int index = n.getVariables().get(i).getName().toString().indexOf("[");
+                String str = n.getVariables().get(i).getName().toString().substring(index, n.getVariables().get(i).getName().toString().length());
+                class_variable.put(n.getVariables().get(i).getName().toString(), type1 + str);
+                variableName = n.getVariables().get(i).getName().toString();
+                variable_line_map.put(n.getVariables().get(i).getName().toString(), n.getEnd().isPresent() ? n.getEnd().get().line : 0);
                 //variable_use_map.put(n.getVars().get(i).getId().toString(),0);
-                if (!class_variable_list.contains(currentVariableName)) {
-                    class_variable_list.add(currentVariableName);
+                if (!class_variable_list.contains(n.getVariables().get(i).getName().toString())) {
+                    class_variable_list.add(n.getVariables().get(i).getName().toString());
                 } else {
                     setModifiedFalse(variableName);
                 }
                 type1 += str;
             } else {
-                class_variable.put(currentVariableName, type1);
-                variableName = currentVariableName;
-                variable_line_map.put(currentVariableName, n.getEnd().isPresent()? n.getEnd().get().line : 0);
+                class_variable.put(n.getVariables().get(i).getName().toString(), type1);
+                variableName = n.getVariables().get(i).getName().toString();
+                variable_line_map.put(n.getVariables().get(i).getName().toString(), n.getEnd().isPresent() ? n.getEnd().get().line : 0);
                 //variable_use_map.put(n.getVars().get(i).getId().toString(),0);
-                if (!class_variable_list.contains(currentVariableName)) {
-                    class_variable_list.add(currentVariableName);
+                if (!class_variable_list.contains(n.getVariables().get(i).getName().toString())) {
+                    class_variable_list.add(n.getVariables().get(i).getName().toString());
                 } else {
                     setModifiedFalse(variableName);
                 }
@@ -1428,18 +1300,18 @@ public class GraphCreator extends GraphConverter {
                     type2 = type2.substring(0, index);
                 }
             }
-            String str = type3.replaceAll("\\[]", "");
+            String str = type3.replaceAll("\\[\\]", "");
             if (class_name_map.get(n.getCommonType().toString()) == null && !jdkList.contains(str)) {
                 if (n.getCommonType().toString().contains("<")) {
                     class_name_map.put(n.getCommonType().toString(), class_name_map.get(type2));
-                    String temp = n.getCommonType().toString().replaceAll("<>", "");
+                    String temp = n.getCommonType().toString().replaceAll("\\<\\>", "");
                     if (class_name_map.get(temp) == null) {
                         userClassProcessing.addUserClass(n.getCommonType().toString());
                         userClassProcessing.addUserClass(temp);
                     }
                 } else if (n.getCommonType().toString().contains("[")) {
                     class_name_map.put(n.getCommonType().toString(), n.getCommonType().toString());
-                    String temp = n.getCommonType().toString().replaceAll("\\[]", "");
+                    String temp = n.getCommonType().toString().replaceAll("\\[\\]", "");
                     if (class_name_map.get(temp) == null) {
                         userClassProcessing.addUserClass(n.getCommonType().toString());
                         userClassProcessing.addUserClass(temp);
@@ -1450,45 +1322,47 @@ public class GraphCreator extends GraphConverter {
                 }
             } else if (class_name_map.get(n.getCommonType().toString()) == null && jdkList.contains(str)) {
                 if (str.contains(".")) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
                 }
             }
-            GraphNode node = new GraphNode();
-            setInfo(node);
+            GroumNode node = new GroumNode();
             addScope(node);
             node.setControl(false);
             node.setExit(false);
             node.setVariableDeclaration(true);
-            String bracket = "";
-            if (type1.contains("[")) {
+            String bracket= "";
+            if(type1.contains("[")) {
                 int index = type1.indexOf("[");
-                bracket = type1.substring(index);
+                bracket = type1.substring(index, type1.length());
             }
-            setGlobalStatementAndVariable((n.getBegin().isPresent()? n.getBegin().get().line : 0) + " " + n.toString(), variableName, class_name_map.get(type2) + bracket);
+            setGlobalStatementAndVariable((n.getBegin().isPresent() ? n.getBegin().get().line : null) + " " + n.toString(), variableName,class_name_map.get(type2) + bracket);
             setNodeStatementAndVariable(node);
+            //node.setVariableName(globalVariableName);
             setNodeClass(node, type1, class_name_map.get(type2));
-            node.setVariableName(globalVariableName, globalType, variableCount);
-            GraphNode judgeNode = lastNode;
+            node.setVariableName(globalVariableName,globalType,variableCount);
+            GroumNode judgeNode = lastNode;
             tempViriableName = variableName;
             if (userClassProcessing.isUserClassProcessing(node.getCompleteClassName())) {
-                checkVariableUsed(n.getVariables().get(i).getInitializer().isPresent()? n.getVariables().get(i).getInitializer().get() : null, false, null,true,true);
-                dealVariableDeclarationExpr(type1, variableName, node, n.getVariables().get(i).getInitializer().isPresent() ? n.getVariables().get(i).getInitializer().get() : null, n, i);
+                checkVariableUsed(n.getVariables().get(i).getInitializer().isPresent() ? n.getVariables().get(i).getInitializer().get() : null, false, null);
+                dealVariableDeclarationExpr(type1, variableName, node, n.getVariables().get(i).getInitializer().get(), n, i);
                 if (lastNode != null && !lastNode.equals(judgeNode) && userClassProcessing.isUserClassProcessing(lastNode.getCompleteClassName())) {
-                    variableNodeMap.get(variableName).remove(lastNode);
+                    if (variableNodeMap.get(variableName).contains(lastNode)) {
+                        variableNodeMap.get(variableName).remove(lastNode);
+                    }
                     if (lastNode.getParentNode() != null) {
                         lastNode.getParentNode().getChildNodes().remove(lastNode);
-                        removeNode(lastNode);
                         lastNode = lastNode.getParentNode();
                     } else {
                         lastNode = null;
-                        graph.setRoot(null);//构造数据时需要设置回去
+                        groum.setRoot(null);
                     }
+
                 }
             } else {
-                dealVariableDeclarationExpr(type1, variableName, node, n.getVariables().get(i).getInitializer().isPresent()? n.getVariables().get(i).getInitializer().get() : null, n, i);
+                dealVariableDeclarationExpr(type1, variableName, node, n.getVariables().get(i).getInitializer().isPresent() ? n.getVariables().get(i).getInitializer().get() : null, n, i);
                 if (lastNode != null && !lastNode.equals(judgeNode)) {
                     lastNode.setVariableDeclaration(true);
-                    lastNode.setVariableName(globalVariableName, globalType, variableCount);
+                    lastNode.setVariableName(globalVariableName,globalType,variableCount);
                     addVariableToNodeMap(variableName, lastNode);
                     if (removeConditionNodeFlag) {
                         if (variableNodeMap.get(variableName) != null) {
@@ -1505,61 +1379,39 @@ public class GraphCreator extends GraphConverter {
             variableDeclarationFlag = false;
         }
         //System.out.println(lastNode.isVariableDeclaration());
-        if (infoFlag) {
-            lastInfo = null;
-        }
-        return graph;
+        return groum;
     }
 
 
-    protected Graph convert(MethodCallExpr n) {
-        //add info
-        boolean infoFlag = false;
-        if (lastInfo == null) {
-            lastInfo = constructInfo(n);
-            infoFlag = true;
-        }
-        GraphNode node = new GraphNode();
-        setInfo(node);
+    protected Groum convert(MethodCallExpr n) {
+        GroumNode node = new GroumNode();
         addScope(node);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+        node.setVariableName(globalVariableName,globalType,variableCount);
         node.setVariablePreserved(true);
-        setGlobalStatementAndVariable(n.getBegin().get().line + " " + n.toString(), globalVariableName, globalType);
+        setGlobalStatementAndVariable((n.getBegin().isPresent() ? n.getBegin().get().line : 0) + " " + n.toString(), globalVariableName,globalType);
         setNodeStatementAndVariable(node);
         dealMethodExpr(n, node);
         //addNode(node);
         if (node.getCompleteClassName() != null && !node.getCompleteClassName().equals("userDefinedClass")) {
-            boolean flag = addNode(node, "c");
-            checkVariableUsed(n, true, node,true, flag);
+            addNode(node);
+            checkVariableUsed(n, true, node);
             //returnType = getMethodReturnType(node);
         } else {
-            checkVariableUsed(n, false, null,true,true);
-            //加下面这段代码是因为当methodcall的参数是API时，就算methodcall是userDefinedClass,也会被作为一个结点加到图中
-            removeUserDefinedClassNode(node);
+            checkVariableUsed(n, false, null);
         }
         globalFlag = true;
-        if (infoFlag) {
-            lastInfo = null;
-        }
-        return graph;
+        return groum;
 
     }
 
-    protected Graph convert(AssignExpr n) {
-        //add info
-        boolean infoFlag = false;
-        if (lastInfo == null) {
-            lastInfo = constructInfo(n);
-            infoFlag = true;
-        }
+    protected Groum convert(AssignExpr n) {
         variableCount += 1;
         assignFlag = true;
-        GraphNode node = new GraphNode();
-        setInfo(node);
+        GroumNode node = new GroumNode();
         addScope(node);
         node.setControl(false);
         node.setExit(false);
-        GraphNode tempNode = lastNode;
+        GroumNode tempNode = lastNode;
         binaryNodeList.removeAll(binaryNodeList);
         dealAssignExpr(n, node);
         String target = n.getTarget().toString();
@@ -1578,7 +1430,7 @@ public class GraphCreator extends GraphConverter {
             } else if (class_variable.get(filterSquareBracket(target) + "[][]") != null) {
                 target = filterSquareBracket(target) + "[][]";
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+                //parsedFlag = false;
             }
         }
         tempViriableName = target;
@@ -1586,43 +1438,39 @@ public class GraphCreator extends GraphConverter {
             if (!binaryNodeList.contains(lastNode)) {
                 binaryNodeList.add(lastNode);
             }
-            List<GraphNode> tempBinaryNodeList = new ArrayList<>();
-            for (GraphNode graphNode : binaryNodeList) {
+            List<GroumNode> tempBinaryNodeList = new ArrayList<>();
+            for (GroumNode groumNode : binaryNodeList) {
                 if (variableNodeMap.get(target) != null) {
                     for (int index = 0; index < variableNodeMap.get(target).size(); index++) {
-                        if (!graphNode.equals(variableNodeMap.get(target).get(index)) && !tempBinaryNodeList.contains(variableNodeMap.get(target).get(index))) {
-                            boolean addNodeFlag = graph.addNode (variableNodeMap.get(target).get(index), graphNode, mutexList, "d");
-                        } else if (graphNode.equals(variableNodeMap.get(target).get(index))) {
+                        if (!groumNode.equals(variableNodeMap.get(target).get(index)) && !tempBinaryNodeList.contains(variableNodeMap.get(target).get(index))) {
+                            groum.addNode(variableNodeMap.get(target).get(index), groumNode, mutexList);
+                        } else if (groumNode.equals(variableNodeMap.get(target).get(index))) {
                             break;
                         } else {
                             //todo nothing
                         }
                     }
                 }
-                tempBinaryNodeList.add(graphNode);
+                tempBinaryNodeList.add(groumNode);
             }
-            //if (variableNodeMap.get(target) != null && !variableNodeMap.get(target).contains(lastNode)
-            if (variableNodeMap.get(target) != null
+            if (variableNodeMap.get(target) != null && !variableNodeMap.get(target).contains(lastNode)
                     && variableNodeMap.get(target).size() > 0) {
                 if (!variableNodeMap.get(target).get(0).isAssign()) {
                     variableNodeMap.get(target).get(0).setVariablePreserved(true);
                 }
+
             }
             tempBinaryNodeList = null;
         }
         assignFlag = false;
         binaryNodeList.removeAll(binaryNodeList);
         tempViriableName = null;
-        if (infoFlag) {
-            lastInfo = null;
-        }
-        return graph;
+        return groum;
     }
 
-    protected Graph convert(ObjectCreationExpr n) {
-        GraphNode node = new GraphNode();
-        setInfo(node);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+    protected Groum convert(ObjectCreationExpr n) {
+        GroumNode node = new GroumNode();
+        node.setVariableName(globalVariableName,globalType,variableCount);
         addScope(node);
         node.setVariablePreserved(true);
         setNodeStatementAndVariable(node);
@@ -1632,7 +1480,8 @@ public class GraphCreator extends GraphConverter {
             type = type.substring(0, index);
         }
         if (userClassProcessing.isUserClassProcessing(class_name_map.get(type))) {
-            checkVariableUsed(n.getArguments(), false, null,true,true);
+            checkVariableUsed(n.getArguments(), false, null);
+            //addNode(userClassProcessing.createObjectCreationExprNode());
         } else {
             setNodeClass(node, type, class_name_map.get(type));
             node.setControl(false);
@@ -1646,21 +1495,20 @@ public class GraphCreator extends GraphConverter {
             }
             // this fragment code is used to compare whether the node.toSting() is consistent with method declaration
             if (!verifyMethodNameAndParameter(node, n.getArguments())) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
                 //System.err.println(n.toString() + ": can not be parsed");
                 return null;
             }
-            boolean flag = addNode(node, "c");
-            checkVariableUsed(n.getArguments(), true, node,true,flag);
+            addNode(node);
+            checkVariableUsed(n.getArguments(), true, node);
         }
-        return graph;
+        return groum;
     }
 
-    protected Graph convert(ArrayCreationExpr n) {
-        GraphNode node = new GraphNode();
-        setInfo(node);
+    protected Groum convert(ArrayCreationExpr n) {
+        GroumNode node = new GroumNode();
         addScope(node);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+        node.setVariableName(globalVariableName,globalType,variableCount);
         setNodeStatementAndVariable(node);
         setNodeClass(node, n.getElementType().toString(), class_name_map.get(n.getElementType().toString()));
         node.setControl(false);
@@ -1684,39 +1532,37 @@ public class GraphCreator extends GraphConverter {
             }
             setNodeMethod(node, "new" + methodArguments, "new" + completeMethodArguments);
             if (!verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
                 //System.err.println(n.toString() + ": can not be parsed");
                 return null;
             }
-            addNode(node, "c");
+            addNode(node);
         }
-        return graph;
+        return groum;
     }
 
-    protected Graph convert(ArrayAccessExpr n) {
-        GraphNode node = new GraphNode();
-        setInfo(node);
+    protected Groum convert(ArrayAccessExpr n) {
+        GroumNode node = new GroumNode();
         addScope(node);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+        node.setVariableName(globalVariableName,globalType,variableCount);
         setNodeStatementAndVariable(node);
         dealArrayAccessExprVariableType(n, node);
         if (!userClassProcessing.isUserClassProcessing(node.getCompleteClassName()) && !verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
             //System.err.println(n.toString() + ": can not be parsed");
             return null;
         } else if (!userClassProcessing.isUserClassProcessing(node.getCompleteClassName()) && verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-            addNode(node, "c");
+            addNode(node);
         } else if (userClassProcessing.isUserClassProcessing(node.getCompleteClassName())) {
             // nothing to do
         }
-        return graph;
+        return groum;
     }
 
-    protected Graph convert(ArrayInitializerExpr n, String type) {
-        GraphNode node = new GraphNode();
-        setInfo(node);
+    protected Groum convert(ArrayInitializerExpr n, String type) {
+        GroumNode node = new GroumNode();
         addScope(node);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+        node.setVariableName(globalVariableName,globalType,variableCount);
         setNodeStatementAndVariable(node);
         setNodeClassAndMethod(node, type, class_name_map.get(filterSquareBracket(type)), "ArrayInit" + preserveSquareBracket(type) + "{}", "ArrayInit" + preserveSquareBracket(type) + "{}");
         node.setControl(false);
@@ -1725,39 +1571,38 @@ public class GraphCreator extends GraphConverter {
             // addNode(userClassProcessing.createArrayInitExprNode());
         } else {
             if (!verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
                 //System.err.println(n.toString() + ": can not be parsed");
                 return null;
             }
-            addNode(node, "c");
+            addNode(node);
         }
-        return graph;
+        return groum;
     }
 
-    protected Graph convert(CastExpr n) {
-        if (n.getExpression().isMethodCallExpr()) {
+    protected Groum convert(CastExpr n) {
+        if (n.getExpression() instanceof MethodCallExpr) {
             MethodCallExpr expr = (MethodCallExpr) n.getExpression();
             convert(expr);
-        } else if (n.getExpression().isObjectCreationExpr()) {
+        } else if (n.getExpression() instanceof ObjectCreationExpr) {
             ObjectCreationExpr expr = (ObjectCreationExpr) n.getExpression();
             convert(expr);
-        } else if (n.getExpression().isArrayCreationExpr()) {
+        } else if (n.getExpression() instanceof ArrayCreationExpr) {
             ArrayCreationExpr expr = (ArrayCreationExpr) n.getExpression();
             convert(expr);
-        } else if (n.getExpression().isArrayAccessExpr()) {
+        } else if (n.getExpression() instanceof ArrayAccessExpr) {
             ArrayAccessExpr expr = (ArrayAccessExpr) n.getExpression();
             convert(expr);
-        } else if (n.getExpression().isFieldAccessExpr()) {
+        } else if (n.getExpression() instanceof FieldAccessExpr) {
             FieldAccessExpr expr = (FieldAccessExpr) n.getExpression();
             convert(expr);
-        } else if (n.getExpression().isEnclosedExpr()) {
+        } else if (n.getExpression() instanceof EnclosedExpr) {
             EnclosedExpr expr = (EnclosedExpr) n.getExpression();
             convert(expr);
         } else {
-            GraphNode node = new GraphNode();
-            setInfo(node);
+            GroumNode node = new GroumNode();
             addScope(node);
-            node.setVariableName(globalVariableName, globalType, variableCount);
+            node.setVariableName(globalVariableName,globalType,variableCount);
             setNodeStatementAndVariable(node);
             setNodeClassAndMethod(node, n.getType().toString(), class_name_map.get(filterSquareBracket(n.getType().toString())), "Cast", "Cast");
             node.setControl(false);
@@ -1766,44 +1611,51 @@ public class GraphCreator extends GraphConverter {
                 //addNode(userClassProcessing.createCastExprNode());
             } else {
                 if (!verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
+                    //System.err.println(n.toString() + ": can not be parsed");
+                    return null;
                 }
-                addNode(node, "c");
+                addNode(node);
             }
         }
-        return graph;
+        return groum;
     }
 
-    protected Graph convert(FieldAccessExpr n) {
-        GraphNode node = new GraphNode();
-        setInfo(node);
+    protected Groum convert(FieldAccessExpr n) {
+        GroumNode node = new GroumNode();
         addScope(node);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+        node.setVariableName(globalVariableName,globalType,variableCount);
         node.setVariablePreserved(true);
+        // setGlobalStatementAndVariable(n.toString(),globalVariableName);
         setNodeStatementAndVariable(node);
         dealFieldAccessExpr(n, node);
+        //addNode(node);
         if (node.getCompleteClassName() != null) {
             if (!userClassProcessing.isUserClassProcessing(node.getCompleteClassName()) && !(node.getCompleteClassName().contains("[]"))) {
-                boolean flag = addNode(node, "c");
-                checkVariableUsed(n, true, node, true,flag);
+                //returnType = getMethodReturnType(node);
+                addNode(node);
+                checkVariableUsed(n, true, node);
             } else if (userClassProcessing.isUserClassProcessing(node.getCompleteClassName())) {
-                checkVariableUsed(n, false, null,true,true);
-                removeUserDefinedClassNode(node);
+                //returnType = "userDefinedClass";
+                checkVariableUsed(n, false, null);
             } else {
-                boolean flag = addNode(node, "c");
-                checkVariableUsed(n, true, node,true,flag);
+                //returnType = "int";//represent the return type of String[].length,int[].length etc..
+                addNode(node);
+                checkVariableUsed(n, true, node);
             }
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
+            //System.err.println(n + " can not be parsed");
         }
-        return graph;
+        // globalFlag = true;
+        return groum;
     }
 
-    protected Graph convert(UnaryExpr n) {
-        return graph;
+    protected Groum convert(UnaryExpr n) {
+        return groum;
     }
 
-    protected Graph convert(EnclosedExpr n) {
+    protected Groum convert(EnclosedExpr n) {
         if (n.getInner() instanceof VariableDeclarationExpr) {
             convert((VariableDeclarationExpr) n.getInner());
         } else if (n.getInner() instanceof MethodCallExpr) {
@@ -1823,9 +1675,9 @@ public class GraphCreator extends GraphConverter {
         } else if (n.getInner() instanceof EnclosedExpr) {
             convert((EnclosedExpr) n.getInner());
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
         }
-        return graph;
+        return groum;
     }
 
     protected void dealClassNameMap(String type) {
@@ -1838,10 +1690,13 @@ public class GraphCreator extends GraphConverter {
                     }
                 } catch (Exception e) {
                     if (!(e instanceof ClassNotFoundException)) {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
+                        //System.err.println(e.getMessage());
                     }
+                    // nothing to do
                 } catch (Error e) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
+                    //System.err.println(e.getMessage());
                 }
             }
         }
@@ -1856,7 +1711,7 @@ public class GraphCreator extends GraphConverter {
             } else if (n.getInitialization().size() == 1 && n.getInitialization().get(0) instanceof VariableDeclarationExpr) {
                 VariableDeclarationExpr expr = (VariableDeclarationExpr) n.getInitialization().get(0);
                 if (expr.getVariables().size() == 1) {
-                    /** GraphNode node = lastNode;**/
+                    /** GroumNode node = lastNode;**/
                     convert(expr);
                     //下面的两条语句当需要考虑条件时，要注释掉
                     //lastNode = lastNode.getParentNode();
@@ -1866,17 +1721,19 @@ public class GraphCreator extends GraphConverter {
                     for (int i = 0; i < expr.getVariables().size(); i++) {
                         VariableDeclarationExpr singleVariableDeclarationExpr = new VariableDeclarationExpr();
                         singleVariableDeclarationExpr.setAllTypes(expr.getCommonType());
-                        NodeList list = new NodeList();
+                        NodeList<VariableDeclarator> list = new NodeList<>();
                         list.add(expr.getVariables().get(i));
                         singleVariableDeclarationExpr.setVariables(list);
-                        /** GraphNode node = lastNode;**/
+                        /** GroumNode node = lastNode;**/
                         convert(singleVariableDeclarationExpr);
                         //下面的两条语句当需要考虑条件时，要注释掉
+                        //lastNode = lastNode.getParentNode();
+                        //lastNode.setChildNodes(new ArrayList<>());
                         variableList.add(class_variable_list.get(class_variable_list.size() - 1));
                     }
                 }
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
                 //System.err.println(n + " " + "can not be parsed");
             }
         } else {
@@ -1891,7 +1748,7 @@ public class GraphCreator extends GraphConverter {
             } else if (n instanceof FieldAccessExpr) {
                 dealFieldAccessCondition(variableName, n);
             } else if (n instanceof ObjectCreationExpr) {
-                GraphNode tempNode = lastNode;
+                GroumNode tempNode = lastNode;
                 convert((ObjectCreationExpr) n);
                 if (lastNode != null && !lastNode.equals(tempNode)) {
                     lastNode.setCondition(true);
@@ -1930,37 +1787,37 @@ public class GraphCreator extends GraphConverter {
                         } else if (class_variable.get(filterSquareBracket(target) + "[][]") != null) {
                             target = filterSquareBracket(target) + "[][]";
                         } else {
-                            parsedFlag = false;//构造数据时得设置回去
+                            parsedFlag = false;
                         }
                     }
                     tempViriableName = target;
-                    GraphNode tempNode = lastNode;
+                    GroumNode tempNode = lastNode;
                     dealCondition(target, expr);
                     if (lastNode != null && !lastNode.equals(tempNode)) {
                         if (!binaryNodeList.contains(lastNode)) {
                             binaryNodeList.add(lastNode);
                         }
-                        List<GraphNode> tempBinaryNodeList = new ArrayList<>();
-                        for (GraphNode graphNode : binaryNodeList) {
+                        List<GroumNode> tempBinaryNodeList = new ArrayList<>();
+                        for (GroumNode groumNode : binaryNodeList) {
                             if (variableNodeMap.get(target) != null) {
                                 for (int index = 0; index < variableNodeMap.get(target).size(); index++) {
-                                    if (!graphNode.equals(variableNodeMap.get(target).get(index)) && !tempBinaryNodeList.contains(variableNodeMap.get(target).get(index))) {
-                                        boolean addNodeFlag = graph.addNode (variableNodeMap.get(target).get(index), graphNode, mutexList, "d");
-                                    } else if (graphNode.equals(variableNodeMap.get(target).get(index))) {
+                                    if (!groumNode.equals(variableNodeMap.get(target).get(index)) && !tempBinaryNodeList.contains(variableNodeMap.get(target).get(index))) {
+                                        groum.addNode(variableNodeMap.get(target).get(index), groumNode, mutexList);
+                                    } else if (groumNode.equals(variableNodeMap.get(target).get(index))) {
                                         break;
                                     } else {
                                         //todo nothing
                                     }
                                 }
                             }
-                            tempBinaryNodeList.add(graphNode);
+                            tempBinaryNodeList.add(groumNode);
                         }
-                        //if (variableNodeMap.get(target) != null && !variableNodeMap.get(target).contains(lastNode)
-                        if (variableNodeMap.get(target) != null
+                        if (variableNodeMap.get(target) != null && !variableNodeMap.get(target).contains(lastNode)
                                 && variableNodeMap.get(target).size() > 0) {
                             if (!variableNodeMap.get(target).get(0).isAssign()) {
                                 variableNodeMap.get(target).get(0).setVariablePreserved(true);
                             }
+
                         }
                         tempBinaryNodeList = null;
                     }
@@ -1987,7 +1844,7 @@ public class GraphCreator extends GraphConverter {
                         } else if (class_variable.get(filterSquareBracket(target) + "[][]") != null) {
                             target = filterSquareBracket(target) + "[][]";
                         } else {
-                            parsedFlag = false;//构造数据时得设置回去
+                            parsedFlag = false;
                         }
                     }
                     tempViriableName = target;
@@ -2018,7 +1875,7 @@ public class GraphCreator extends GraphConverter {
                         } else if (class_variable.get(filterSquareBracket(target) + "[][]") != null) {
                             target = filterSquareBracket(target) + "[][]";
                         } else {
-                            parsedFlag = false;//构造数据时得设置回去
+                            parsedFlag = false;
                         }
                     }
                     tempViriableName = target;
@@ -2028,9 +1885,6 @@ public class GraphCreator extends GraphConverter {
                     variableDeclarationFlag = false;
                 }
 
-            }else if (n instanceof UnaryExpr){
-                Expression expr = ((UnaryExpr) n).getExpression();
-                dealCondition(variableName, expr);
             }
             if (markHole && n.toString().contains("true == true")) {
                 replaceHoleString();
@@ -2040,58 +1894,56 @@ public class GraphCreator extends GraphConverter {
 
     protected void dealMethodCallCondition(String variableName, Expression n) {//已修改好
         MethodCallExpr expr = (MethodCallExpr) n;
-        GraphNode conditionContentNode = new GraphNode();
+        GroumNode conditionContentNode = new GroumNode();
         addScope(conditionContentNode);
         conditionContentNode.setVariablePreserved(true);
         conditionContentNode.setCondition(true);
         dealMethodExpr(expr, conditionContentNode);
         if (conditionContentNode.getCompleteClassName() != null && !conditionContentNode.getCompleteClassName().equals("userDefinedClass")) {
-            boolean flag = addNode(conditionContentNode, "c");
-            if (variableName != null && flag) {
+            addNode(conditionContentNode);
+            if (variableName != null) {
                 addVariableToNodeMap(variableName, conditionContentNode);
             }
-            if (conditionAssignFlag && conditionContentNode != null && flag) {
+            if (conditionAssignFlag && conditionContentNode != null) {
                 binaryNodeList.add(conditionContentNode);
             }
-            checkVariableUsed(n, true, conditionContentNode, true, flag);
+            checkVariableUsed(n, true, conditionContentNode);
         } else {
-            checkVariableUsed(n, false, null,true,true);
-            removeUserDefinedClassNode(conditionContentNode);
+            checkVariableUsed(n, false, null);
         }
     }
 
     protected void dealFieldAccessCondition(String variableName, Expression n) {//已修改好
         FieldAccessExpr expr = (FieldAccessExpr) n;
-        GraphNode conditionContentNode = new GraphNode();
+        GroumNode conditionContentNode = new GroumNode();
         addScope(conditionContentNode);
         conditionContentNode.setVariablePreserved(true);
         conditionContentNode.setCondition(true);
         dealFieldAccessExpr(expr, conditionContentNode);
         if (conditionContentNode.getCompleteClassName() != null) {
             if (!userClassProcessing.isUserClassProcessing(conditionContentNode.getCompleteClassName()) && !(conditionContentNode.getCompleteClassName().contains("[]"))) {
-                boolean flag = addNode(conditionContentNode, "c");
-                if (variableName != null && flag) {
+                addNode(conditionContentNode);
+                if (variableName != null) {
                     addVariableToNodeMap(variableName, conditionContentNode);
                 }
-                if (conditionAssignFlag && conditionContentNode != null && flag) {
+                if (conditionAssignFlag && conditionContentNode != null) {
                     binaryNodeList.add(conditionContentNode);
                 }
-                checkVariableUsed(n, true, conditionContentNode,true, flag);
+                checkVariableUsed(n, true, conditionContentNode);
             } else if (userClassProcessing.isUserClassProcessing(conditionContentNode.getCompleteClassName())) {
-                checkVariableUsed(n, false, null,true,true);
-                removeUserDefinedClassNode(conditionContentNode);
+                checkVariableUsed(n, false, null);
             } else {
-                boolean flag = addNode(conditionContentNode, "c");
-                if (variableName != null && flag) {
+                addNode(conditionContentNode);
+                if (variableName != null) {
                     addVariableToNodeMap(variableName, conditionContentNode);
                 }
-                if (conditionAssignFlag && conditionContentNode != null && flag) {
+                if (conditionAssignFlag && conditionContentNode != null) {
                     binaryNodeList.add(conditionContentNode);
                 }
-                checkVariableUsed(n, true, conditionContentNode,true,flag);
+                checkVariableUsed(n, true, conditionContentNode);
             }
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
         }
     }
 
@@ -2125,7 +1977,7 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    protected String getMethodReturnType(GraphNode node) {
+    protected String getMethodReturnType(GroumNode node) {
         String type = node.getCompleteClassName();
         if (node.getCompleteClassName() != null && !node.getCompleteClassName().contains("[]")) {
             MethodReflection methodReflection = new MethodReflection(node.getCompleteClassName());
@@ -2163,7 +2015,7 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    protected void dealArrayAccessExprVariableType(ArrayAccessExpr n, GraphNode node) {
+    protected void dealArrayAccessExprVariableType(ArrayAccessExpr n, GroumNode node) {
         String expressionString = n.toString();
         String expressionNameString = new String("");
         String expressionWithoutIndexString = new String("");
@@ -2192,9 +2044,7 @@ public class GraphCreator extends GraphConverter {
         if (class_variable.get(expressionWithoutIndexString) != null) {
             setNodeClass(node, getVariableType(class_variable.get(expressionWithoutIndexString), false), class_name_map.get(filterSquareBracket(getVariableType(class_variable.get(expressionWithoutIndexString), false))));
             returnType = class_name_map.get(getVariableType(class_variable.get(expressionWithoutIndexString), false));
-            node.getArgumentList().add(expressionWithoutIndexString);
         } else if (class_variable.get(expressionNameString) != null) {
-            node.getArgumentList().add(expressionNameString);
             String type = getVariableType(class_variable.get(expressionNameString), false);
             String type2 = getVariableType(class_variable.get(expressionNameString), true);
             if (type.contains("[")) {
@@ -2209,7 +2059,6 @@ public class GraphCreator extends GraphConverter {
                 returnType = class_name_map.get(type) + "[]";
             }
         } else if (class_variable.get(expressionWithoutIndexString + "[]") != null) {
-            node.getArgumentList().add(expressionWithoutIndexString + "[]");
             String type = getVariableType(class_variable.get(expressionWithoutIndexString + "[]"), false);
             if (type.contains("[")) {
                 int firstIndexOfLeftSquareBracket = type.indexOf('[');
@@ -2219,13 +2068,15 @@ public class GraphCreator extends GraphConverter {
             setNodeClass(node, type, class_name_map.get(filterSquareBracket(type)));
             setNodeMethod(node, node.getMethodName() + "[]", node.getCompleteMethodName() + "[]");
             returnType = completeType;
+        } else {
+            parsedFlag = false;
+            //System.err.println(n + " " + "can not be parsed");
         }
         node.setExit(false);
     }
 
-    protected void dealFieldAccessExprScope(Expression expression, FieldAccessExpr n, GraphNode fieldAccessNode) {
-        GraphNode node = new GraphNode();
-        setInfo(node);
+    protected void dealFieldAccessExprScope(Expression expression, FieldAccessExpr n, GroumNode fieldAccessNode) {
+        GroumNode node = new GroumNode();
         addScope(node);
         node.setControl(false);
         node.setExit(false);
@@ -2234,7 +2085,6 @@ public class GraphCreator extends GraphConverter {
             dealClassNameMap(class_variable.get(expression.toString()));
             dealClassNameMap(expression.toString());
             if ((class_variable.get(fieldAccessScope) != null && !getVariableType(class_variable.get(fieldAccessScope), true).contains("[]"))) {
-                fieldAccessNode.getArgumentList().add(fieldAccessScope);
                 if (class_variable.get(fieldAccessScope).contains("[][]")) {
                     String completeType = class_name_map.get(class_variable.get(fieldAccessScope).replaceAll("\\[\\]", "")) + "[][]";
                     setNodeClassAndMethod(node, class_variable.get(fieldAccessScope), completeType, n.getName().toString(), n.getName().toString());
@@ -2245,7 +2095,6 @@ public class GraphCreator extends GraphConverter {
                     setNodeClassAndMethod(node, class_variable.get(fieldAccessScope), class_name_map.get(class_variable.get(fieldAccessScope)), n.getName().toString(), n.getName().toString());
                 }
             } else if ((class_variable.get(fieldAccessScope) != null && !getVariableType(fieldAccessScope, true).contains("[]"))) {
-                fieldAccessNode.getArgumentList().add(fieldAccessScope);
                 if (class_variable.get(fieldAccessScope).contains("[][]")) {
                     String completeType = class_name_map.get(class_variable.get(fieldAccessScope).replaceAll("\\[\\]", "")) + "[][]";
                     setNodeClassAndMethod(node, class_variable.get(fieldAccessScope), completeType, n.getName().toString(), n.getName().toString());
@@ -2260,51 +2109,54 @@ public class GraphCreator extends GraphConverter {
             } else if (class_variable.get(fieldAccessScope) == null && class_name_map.get(fieldAccessScope) != null) {
                 setNodeClassAndMethod(node, fieldAccessScope, class_name_map.get(fieldAccessScope), n.getName().toString(), n.getName().toString());
             } else if (class_variable.get(fieldAccessScope + "[]") != null) {
-                fieldAccessNode.getArgumentList().add(fieldAccessScope + "[]");
                 String type = getVariableType(class_variable.get(fieldAccessScope + "[]"), false);
                 String completeType = class_name_map.get(type.replaceAll("\\[\\]", "")) + "[]";
+                //variable_use_map.put(n.getScope().toString() + "[]",//variable_use_map.get(n.getScope().toString() + "[]") + 1);
                 if (!type.contains("[]")) {
                     type += "[]";
                 }
                 if (n.getName().toString().equals("length")) {
                     setNodeClassAndMethod(node, type, completeType, n.getName().toString(), n.getName().toString());
                 } else {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
+                    //System.err.println(n.getName() + " " + "can not be parsed");
                 }
             } else if (class_variable.get(fieldAccessScope + "[][]") != null) {
-                fieldAccessNode.getArgumentList().add(fieldAccessScope + "[][]");
                 String type = getVariableType(class_variable.get(fieldAccessScope + "[][]"), false);
                 String completeType = class_name_map.get(type.replaceAll("\\[\\]", "")) + "[][]";
+                //variable_use_map.put(n.getScope().toString() + "[][]",//variable_use_map.get(n.getScope().toString() + "[][]") + 1);
                 if (!type.contains("[]")) {
                     type += "[][]";
                 }
                 if (n.getName().toString().equals("length")) {
                     setNodeClassAndMethod(node, type, completeType, n.getName().toString(), n.getName().toString());
                 } else {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
+                    //System.err.println(n.getName() + " " + "can not be parsed");
                 }
             } else if (jdkList.contains(fieldAccessScope)) {
-                fieldAccessNode.getArgumentList().add(fieldAccessScope);
                 String[] strs = fieldAccessScope.split("\\.");
                 setNodeClassAndMethod(node, strs[strs.length - 1], fieldAccessScope, n.getName().toString(), n.getName().toString());
             } else {
-                fieldAccessNode.getArgumentList().add(fieldAccessScope);
                 String type = getVariableType(class_variable.get(fieldAccessScope), true);
+                //variable_use_map.put(n.getScope().toString(),//variable_use_map.get(n.getScope().toString()) + 1);
                 if (type != null) {
                     int index = type.indexOf('[');
                     String completeType = class_name_map.get(type.substring(0, index)) + type.substring(index, type.length());
                     if (n.getName().toString().equals("length")) {
                         setNodeClassAndMethod(node, type, completeType, n.getName().toString(), n.getName().toString());
                     } else {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
+                        //System.err.println(n.getName() + " " + "can not be parsed");
                     }
                 } else {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
+                    //System.err.println(n.toString() + " " + "can not be parsed");
                 }
             }
         } else if (expression instanceof FieldAccessExpr) {
             if (jdkList.contains(expression.toString())) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             } else {
                 dealFieldAccessExpr((FieldAccessExpr) expression, fieldAccessNode);
                 if (returnType != null) {
@@ -2319,6 +2171,7 @@ public class GraphCreator extends GraphConverter {
                 }
                 setNodeMethod(node, n.getName().toString(), n.getName().toString());
             }
+            //dealLastFieldOfFieldAccess(n, node);
         } else if (expression instanceof MethodCallExpr) {
             dealMethodExpr((MethodCallExpr) expression, fieldAccessNode);
             if (returnType != null) {
@@ -2344,19 +2197,24 @@ public class GraphCreator extends GraphConverter {
             dealFieldAccessExprScope(expr.getInner(), n, fieldAccessNode);
             node = null;
         } else if (expression instanceof ObjectCreationExpr) {
-            GraphNode tempNode = lastNode;
+            GroumNode tempNode = lastNode;
             convert((ObjectCreationExpr) expression);
             if (lastNode != null && !lastNode.equals(tempNode)) {
                 if (!fieldAccessNode.getDataDependency().contains(lastNode)) {
                     fieldAccessNode.getDataDependency().add(lastNode);
                 }
-                for (GraphNode graphNode : fieldAccessNode.getDataDependency()) {
-                    boolean addNodeFlag = graph.addNode (graphNode, fieldAccessNode, mutexList, "d");
+                for (GroumNode groumNode : lastNode.getDataDependency()) {
+                    if (!fieldAccessNode.getDataDependency().contains(groumNode)) {
+                        fieldAccessNode.getDataDependency().add(groumNode);
+                    }
+                }
+                for(GroumNode groumNode: fieldAccessNode.getDataDependency()){
+                    groum.addNode(groumNode, fieldAccessNode, mutexList);
                 }
                 if (conditionFlag || assignFlag || variableDeclarationFlag) {
                     if (tempViriableName != null) {
                         objectCreationNode = lastNode;
-                        if (lastNode != null) {
+                        if(lastNode != null) {
                             addVariableToNodeMap(tempViriableName, objectCreationNode);
                             if (!variableDeclarationFlag) {
                                 binaryNodeList.add(objectCreationNode);
@@ -2367,7 +2225,7 @@ public class GraphCreator extends GraphConverter {
                             binaryFlag = true;
                         }
                     } else {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
                     }
                 }
                 String type = getMethodReturnType(lastNode);
@@ -2383,7 +2241,7 @@ public class GraphCreator extends GraphConverter {
             }
         } else {
             setNodeClassAndMethod(node, "", "", "", "");
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
             //System.err.println(n + " " + "can not be parsed");
         }
         //判断field access是否正确
@@ -2396,7 +2254,7 @@ public class GraphCreator extends GraphConverter {
                     setNodeClass(node, "userDefinedClass", "userDefinedClass");
                 }
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             }
             //判断是否为一个正确的API调用
             if (node.getCompleteClassName() != null && !node.getCompleteClassName().equals("userDefinedClass")) {
@@ -2404,7 +2262,7 @@ public class GraphCreator extends GraphConverter {
                     setNodeClass(fieldAccessNode, node.getClassName(), node.getCompleteClassName());
                 }
                 if (!verifyFieldAccess(node) && !verifyMethodNameAndParameterOfSpecial(node, node.getClassName()) && !node.toString().endsWith("[].length")) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
                 } else {
                     if (fieldAccessNode.getMethodName() == null) {
                         setNodeMethod(fieldAccessNode, node.getMethodName(), node.getCompleteMethodName());
@@ -2414,41 +2272,41 @@ public class GraphCreator extends GraphConverter {
                     returnType = getMethodReturnType(node);
                 }
             } else if (node.getCompleteClassName() == null) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             } else if (node.getCompleteClassName().equals("userDefinedClass")) {
                 //if (methodNode.getClassName() == null) {
                 setNodeClass(fieldAccessNode, "userDefinedClass", "userDefinedClass");
                 returnType = "userDefinedClass";
                 //}
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             }
         }
     }
 
     protected void dealReturnExpr(Expression expr) {
         if (expr != null) {
-            if (expr.isMethodCallExpr()) {
+            if (expr instanceof MethodCallExpr) {
                 convert((MethodCallExpr) expr);
-            } else if (expr.isObjectCreationExpr()) {
+            } else if (expr instanceof ObjectCreationExpr) {
                 convert((ObjectCreationExpr) expr);
-            } else if (expr.isFieldAccessExpr()) {
+            } else if (expr instanceof FieldAccessExpr) {
                 convert((FieldAccessExpr) expr);
-            } else if (expr.isEnclosedExpr()) {
+            } else if (expr instanceof EnclosedExpr) {
                 dealReturnExpr(((EnclosedExpr) expr).getInner());
-            } else if (expr.isCastExpr()) {
+            } else if (expr instanceof CastExpr) {
                 dealReturnExpr(((CastExpr) expr).getExpression());
-            } else if (expr.isBinaryExpr()) {
+            } else if (expr instanceof BinaryExpr) {
                 BinaryExpr binaryExpr = (BinaryExpr) expr;
                 dealReturnExpr(binaryExpr.getRight());
                 dealReturnExpr(binaryExpr.getLeft());
-            } else if (expr.isUnaryExpr()) {
+            } else if (expr instanceof UnaryExpr) {
                 convert((UnaryExpr) expr);
             }
         }
     }
 
-    protected void dealVariableDeclarationExpr(String type1, String variableName, GraphNode node, Expression declareExpression, VariableDeclarationExpr n, int i) {
+    protected void dealVariableDeclarationExpr(String type1, String variableName, GroumNode node, Expression declareExpression, VariableDeclarationExpr n, int i) {
         boolean verifyFlag = true;
         if (declareExpression != null) {
             if (!declareExpression.toString().equals("null")) {
@@ -2464,7 +2322,7 @@ public class GraphCreator extends GraphConverter {
                         String constant = handleConstant(declareExpression.toString());
                         type += constant + preserveSquareBracket(type1);
                         setNodeMethod(node, type, type);
-                        addNode(node, "c");
+                        addNode(node);
                         addVariableToNodeMap(variableName, node);
                         verifyFlag = false;
                     }
@@ -2472,15 +2330,14 @@ public class GraphCreator extends GraphConverter {
                     String constant = handleConstant(declareExpression.toString());
                     type += constant + preserveSquareBracket(type1);
                     setNodeMethod(node, type, type);
-                    addNode(node, "c");
+                    addNode(node);
                     addVariableToNodeMap(variableName, node);
                     verifyFlag = false;
                 } else if (declareExpression instanceof MethodCallExpr) {
                     MethodCallExpr expr = (MethodCallExpr) declareExpression;
-                    GraphNode methodNode = new GraphNode();
-                    setInfo(methodNode);
+                    GroumNode methodNode = new GroumNode();
                     addScope(methodNode);
-                    methodNode.setVariableName(globalVariableName, globalType, variableCount);
+                    methodNode.setVariableName(globalVariableName,globalType,variableCount);
                     methodNode.setVariablePreserved(true);
                     setNodeStatementAndVariable(methodNode);
                     dealMethodExpr(expr, methodNode);
@@ -2489,45 +2346,39 @@ public class GraphCreator extends GraphConverter {
                     }
                     dealMethodReturnType(n.getVariables().get(i).getName().toString(), returnType);
                     if (userClassProcessing.isUserClassProcessing(methodNode.getCompleteClassName())) {
-                        String constant = handleConstant(declareExpression.toString());
-                        type += constant + preserveSquareBracket(type1);
-                        setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), type, type);
-                        //setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), "Declaration", "Declaration");
-                        boolean flag = addNode(node, "c");
-                        if(flag) {
-                            addVariableToNodeMap(variableName, node);
-                        }
-                        checkVariableUsed(n, false, null,true,flag);
-                        removeUserDefinedClassNode(methodNode);
+                        setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), "Declaration", "Declaration");
+                        addNode(node);
+                        addVariableToNodeMap(variableName, node);
+                        checkVariableUsed(n, false, null);
                     } else {
-                        boolean flag = addNode(methodNode, "c");
-                        checkVariableUsed(expr, true, methodNode,true,flag);
+                        addNode(methodNode);
+                        checkVariableUsed(expr, true, methodNode);
                     }
                 } else if (declareExpression instanceof ObjectCreationExpr) {
                     ObjectCreationExpr expr = (ObjectCreationExpr) declareExpression;
                     setVariableType(n.getVariables().get(i).getName().toString(), getVariableType(class_variable.get(n.getVariables().get(i).getName().toString()), true), expr.getType().toString());
-                    //GraphNode tempNode = lastNode;
+                    //GroumNode tempNode = lastNode;
                     convert(expr);
                 } else if (declareExpression instanceof ArrayCreationExpr) {
                     ArrayCreationExpr expr = (ArrayCreationExpr) declareExpression;
                     setVariableType(n.getVariables().get(i).getName().toString(), getVariableType(class_variable.get(n.getVariables().get(i).getName().toString()), true), expr.getElementType().toString());
-                    GraphNode tempNode = lastNode;
-                    // tempNode.setVariableName(globalVariableName,globalType);
+                    GroumNode tempNode = lastNode;
+                   // tempNode.setVariableName(globalVariableName,globalType);
                     convert(expr);
                     setVariableDeclaration(tempNode, variableName);
                 } else if (declareExpression instanceof CastExpr) {
                     CastExpr expr = (CastExpr) declareExpression;
-                    GraphNode tempNode = lastNode;
-                    // tempNode.setVariableName(globalVariableName,globalType);
+                    GroumNode tempNode = lastNode;
+                   // tempNode.setVariableName(globalVariableName,globalType);
                     convert(expr);
-                    if ((lastNode != null && lastNode.equals(tempNode)) || lastNode == null) {
+                    if (lastNode == null || lastNode.equals(tempNode)) {
                         setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), "Cast", "Cast");
-                        addNode(node, "c");
+                        addNode(node);
                         addVariableToNodeMap(variableName, node);
-                    } else if (lastNode != null && !lastNode.equals(tempNode)) {
-                        if (expr.getExpression().isMethodCallExpr() ||
-                                expr.getExpression().isFieldAccessExpr() ||
-                                expr.getExpression().isObjectCreationExpr()) {
+                    } else if (!lastNode.equals(tempNode)) {
+                        if (expr.getExpression() instanceof MethodCallExpr ||
+                                expr.getExpression() instanceof FieldAccessExpr ||
+                                expr.getExpression() instanceof ObjectCreationExpr) {
                         } else {
                             setVariableDeclaration(tempNode, variableName);
                         }
@@ -2535,25 +2386,24 @@ public class GraphCreator extends GraphConverter {
                     setVariableType(n.getVariables().get(i).getName().toString(), getVariableType(class_variable.get(n.getVariables().get(i).getName().toString()), true), expr.getType().toString());
                 } else if (declareExpression instanceof ArrayAccessExpr) {
                     ArrayAccessExpr expr = (ArrayAccessExpr) declareExpression;
-                    GraphNode arrayAccessNode = new GraphNode();
-                    setInfo(arrayAccessNode);
+                    GroumNode arrayAccessNode = new GroumNode();
                     addScope(arrayAccessNode);
-                    arrayAccessNode.setVariableName(globalVariableName, globalType, variableCount);
+                    arrayAccessNode.setVariableName(globalVariableName,globalType,variableCount);
                     arrayAccessNode.setVariableDeclaration(true);
                     setNodeStatementAndVariable(arrayAccessNode);
                     dealArrayAccessExprVariableType(expr, arrayAccessNode);
                     if (!userClassProcessing.isUserClassProcessing(arrayAccessNode.getCompleteClassName()) && !verifyMethodNameAndParameterOfSpecial(arrayAccessNode, arrayAccessNode.getClassName())) {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
                         //System.err.println(n.toString() + ": can not be parsed");
-                        addNode(arrayAccessNode, "c");
+                        addNode(arrayAccessNode);
                         //return null;
                     } else if (!userClassProcessing.isUserClassProcessing(arrayAccessNode.getCompleteClassName()) && verifyMethodNameAndParameterOfSpecial(arrayAccessNode, arrayAccessNode.getClassName())) {
-                        GraphNode tempNode = lastNode;
-                        addNode(arrayAccessNode, "c");
+                        GroumNode tempNode = lastNode;
+                        addNode(arrayAccessNode);
                         setVariableDeclaration(tempNode, variableName);
                     } else {
                         setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), "Declaration", "Declaration");
-                        addNode(node, "c");
+                        addNode(node);
                         addVariableToNodeMap(variableName, node);
                         verifyFlag = false;
                     }
@@ -2561,51 +2411,44 @@ public class GraphCreator extends GraphConverter {
                 } else if (declareExpression instanceof ArrayInitializerExpr) {
                     ArrayInitializerExpr expr = (ArrayInitializerExpr) declareExpression;
                     if (n.getCommonType().toString().contains("[]")) {
-                        GraphNode tempNode = lastNode;
+                        GroumNode tempNode = lastNode;
                         convert(expr, n.getCommonType().toString());
                         setVariableDeclaration(tempNode, variableName);
                     } else if (type1.contains("[]")) {
-                        GraphNode tempNode = lastNode;
+                        GroumNode tempNode = lastNode;
                         convert(expr, type1);
                         setVariableDeclaration(tempNode, variableName);
                     } else {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
                         //System.err.println(n.toString() + " can not be parsed");
                     }
                 } else if (declareExpression instanceof FieldAccessExpr) {
                     FieldAccessExpr expr = (FieldAccessExpr) declareExpression;
-                    GraphNode fieldNode = new GraphNode();
-                    setInfo(fieldNode);
+                    GroumNode fieldNode = new GroumNode();
                     addScope(fieldNode);
-                    fieldNode.setVariableName(globalVariableName, globalType, variableCount);
+                    fieldNode.setVariableName(globalVariableName,globalType,variableCount);
                     fieldNode.setVariablePreserved(true);
                     setNodeStatementAndVariable(fieldNode);
                     dealFieldAccessExpr(expr, fieldNode);
                     if (fieldNode.getCompleteClassName() != null) {
                         if (!userClassProcessing.isUserClassProcessing(fieldNode.getCompleteClassName()) && !(fieldNode.getCompleteClassName().contains("[]"))) {
                             returnType = getMethodReturnType(fieldNode);
-                            boolean flag = addNode(fieldNode, "c");
-                            checkVariableUsed(expr, true, fieldNode,true,flag);
+                            addNode(fieldNode);
+                            checkVariableUsed(expr, true, fieldNode);
                         } else if (userClassProcessing.isUserClassProcessing(fieldNode.getCompleteClassName())) {
                             returnType = "userDefinedClass";
-                            String constant = handleConstant(declareExpression.toString());
-                            type += constant + preserveSquareBracket(type1);
-                            setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), type, type);
-                            //setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), "Declaration", "Declaration");
-                            boolean flag = addNode(node, "c");
-                            if(flag) {
-                                addVariableToNodeMap(variableName, node);
-                            }
-                            checkVariableUsed(expr, false, null,true,flag);
-                            removeUserDefinedClassNode(fieldNode);
+                            setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), "Declaration", "Declaration");
+                            addNode(node);
+                            addVariableToNodeMap(variableName, node);
+                            checkVariableUsed(expr, false, null);
                         } else {
                             returnType = "int";//represent the return type of String[].length,int[].length etc..
-                            boolean flag = addNode(fieldNode, "c");
-                            checkVariableUsed(expr, true, fieldNode,true,flag);
+                            addNode(fieldNode);
+                            checkVariableUsed(expr, true, fieldNode);
                         }
                         dealMethodReturnType(n.getVariables().get(i).getName().toString(), returnType);
                     } else {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
                         //System.err.println(n + " can not be parsed");
                     }
                 } else if (declareExpression instanceof EnclosedExpr) {
@@ -2618,7 +2461,7 @@ public class GraphCreator extends GraphConverter {
                     String constant = handleConstant(declareExpression.toString());
                     type += constant + preserveSquareBracket(type1);
                     setNodeMethod(node, type, type);
-                    addNode(node, "c");
+                    addNode(node);
                     addVariableToNodeMap(variableName, node);
                     verifyFlag = false;
                 }
@@ -2629,7 +2472,7 @@ public class GraphCreator extends GraphConverter {
                 } else {
                     setNodeMethod(node, "Null", "Null");
                 }
-                addNode(node, "c");
+                addNode(node);
                 addVariableToNodeMap(variableName, node);
                 verifyFlag = false;
             }
@@ -2639,46 +2482,32 @@ public class GraphCreator extends GraphConverter {
             } else {
                 setNodeMethod(node, "Declaration", "Declaration");
             }
-            addNode(node, "c");
+            addNode(node);
             addVariableToNodeMap(variableName, node);
             verifyFlag = false;
         }
         if (!verifyFlag && !userClassProcessing.isUserClassProcessing(node.getCompleteClassName()) && !verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
             //System.err.println(n.toString() + ": can not be parsed");
         }
-
     }
 
-    private void dealAssignExpr(String type, String variableName, String target, GraphNode node, Expression assignExpression) {
+    protected void dealAssignExpr(String type, String variableName, String target, GroumNode node, Expression assignExpression) {
         boolean verifyFlag = true;
         if (assignExpression instanceof ObjectCreationExpr) {
             ObjectCreationExpr expr = (ObjectCreationExpr) assignExpression;
             setVariableType(target, getVariableType(type, true), expr.getType().toString());
             convert(expr);
         } else if (assignExpression instanceof MethodCallExpr) {
-            GraphNode temp = lastNode;
             MethodCallExpr expr = (MethodCallExpr) assignExpression;
             convert(expr);
-            if(temp != null && temp.equals(lastNode) && !userClassProcessing.isUserClassProcessing(node.getCompleteClassName())) {
-                String constant = "";
-                if (type.contains("[")) {
-                    constant += "Array";
-                }
-                constant += handleConstant(constant);
-                constant += preserveSquareBracket(type);
-                setNodeMethod(node,constant,constant);
-                addNode(node, "c");
-                lastNode.setAssign(true);
-                addVariableToNodeMap(variableName, node);
-            }
             //dealMethodReturnType(target, returnType);
             returnType = null;
             //verifyFlag = false;
         } else if (assignExpression instanceof ArrayCreationExpr) {
             ArrayCreationExpr expr = (ArrayCreationExpr) assignExpression;
             setVariableType(target, getVariableType(type, true), expr.getElementType().toString());
-            GraphNode tempNode = lastNode;
+            GroumNode tempNode = lastNode;
             convert(expr);
             lastNode.setAssign(true);
             setVariableDeclaration(tempNode, variableName);
@@ -2693,27 +2522,27 @@ public class GraphCreator extends GraphConverter {
                 } else {
                     setNodeMethod(node, "Null", "Null");
                 }
-                addNode(node, "c");
+                addNode(node);
                 lastNode.setAssign(true);
                 addVariableToNodeMap(variableName, node);
             } else {
-                //parsedFlag = false;
+                parsedFlag = false;
                 //System.err.println(n + " can not be parsed");
             }
             verifyFlag = false;
         } else if (assignExpression instanceof CastExpr) {
             CastExpr expr = (CastExpr) assignExpression;
-            GraphNode tempNode = lastNode;
+            GroumNode tempNode = lastNode;
             convert(expr);
             if ((lastNode != null && lastNode.equals(tempNode)) || lastNode == null) {
                 setNodeClassAndMethod(node, node.getClassName(), node.getCompleteClassName(), "Cast", "Cast");
-                addNode(node, "c");
+                addNode(node);
                 lastNode.setAssign(true);
                 addVariableToNodeMap(variableName, node);
             } else if (lastNode != null && !lastNode.equals(tempNode)) {
-                if (expr.getExpression().isMethodCallExpr() ||
-                        expr.getExpression().isFieldAccessExpr() ||
-                        expr.getExpression().isObjectCreationExpr()) {
+                if (expr.getExpression() instanceof MethodCallExpr ||
+                        expr.getExpression() instanceof FieldAccessExpr ||
+                        expr.getExpression() instanceof ObjectCreationExpr) {
                     //todo nothing
                 } else {
                     lastNode.setAssign(true);
@@ -2724,7 +2553,7 @@ public class GraphCreator extends GraphConverter {
             //verifyFlag = false;
         } else if (assignExpression instanceof ArrayAccessExpr) {
             ArrayAccessExpr expr = (ArrayAccessExpr) assignExpression;
-            GraphNode tempNode = lastNode;
+            GroumNode tempNode = lastNode;
             convert(expr);
             lastNode.setAssign(true);
             setVariableDeclaration(tempNode, variableName);
@@ -2732,21 +2561,8 @@ public class GraphCreator extends GraphConverter {
             returnType = null;
             //verifyFlag = false;
         } else if (assignExpression instanceof FieldAccessExpr) {
-            GraphNode temp = lastNode;
             FieldAccessExpr expr = (FieldAccessExpr) assignExpression;
             convert(expr);
-            if(temp != null && temp.equals(lastNode) && !userClassProcessing.isUserClassProcessing(node.getCompleteClassName())) {
-                String constant = "";
-                if (type.contains("[")) {
-                    constant += "Array";
-                }
-                constant += handleConstant(constant);
-                constant += preserveSquareBracket(type);
-                setNodeMethod(node,constant,constant);
-                addNode(node, "c");
-                lastNode.setAssign(true);
-                addVariableToNodeMap(variableName, node);
-            }
             //dealMethodReturnType(target, returnType);
             returnType = null;
             //verifyFlag = false;
@@ -2775,7 +2591,7 @@ public class GraphCreator extends GraphConverter {
                     String constant = handleConstant(assignExpression.toString());
                     setNodeMethod(node, constant, constant);
                 }
-                addNode(node, "c");
+                addNode(node);
                 addVariableToNodeMap(variableName, node);
                 verifyFlag = false;
             }
@@ -2793,17 +2609,17 @@ public class GraphCreator extends GraphConverter {
                 String constant = handleConstant(assignExpression.toString());
                 setNodeMethod(node, constant, constant);
             }
-            addNode(node, "c");
+            addNode(node);
             addVariableToNodeMap(variableName, node);
             verifyFlag = false;
         }
         if (!verifyFlag && !verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
             //System.err.println(n.toString() + ": can not be parsed");
         }
     }
 
-    private void dealAssignExpr(AssignExpr n, GraphNode node) {
+    protected void dealAssignExpr(AssignExpr n, GroumNode node) {
         String variableName = null;
         //处理value
         //boolean verifyFlag = true;
@@ -2830,7 +2646,7 @@ public class GraphCreator extends GraphConverter {
                 target = filterSquareBracket(target) + "[][]";
                 bracket = "[][]";
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+               // parsedFlag = false;
                 //System.err.println(n.toString() + " can not be parsed");
             }
         } else {
@@ -2838,13 +2654,13 @@ public class GraphCreator extends GraphConverter {
         }
         variableName = target;
         tempViriableName = variableName;
-        setGlobalStatementAndVariable(n.getBegin().get().line + " " + n.toString(), variableName, type + bracket);
+        setGlobalStatementAndVariable((n.getBegin().isPresent() ? n.getBegin().get().line : 0) + " " + n.toString(), variableName,type+bracket);
         setNodeStatementAndVariable(node);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+        node.setVariableName(globalVariableName,globalType,variableCount);
         setNodeClass(node, getVariableType(type, true), class_name_map.get(filterSquareBracket(getVariableType(type, true))));
-        GraphNode judgeNode = lastNode;
+        GroumNode judgeNode = lastNode;
         if (userClassProcessing.isUserClassProcessing(node.getCompleteClassName())) {
-            checkVariableUsed(n.getValue(), false, null,true,true);
+            checkVariableUsed(n.getValue(), false, null);
             dealAssignExpr(type, variableName, target, node, n.getValue());
             if (lastNode != null && !lastNode.equals(judgeNode) && userClassProcessing.isUserClassProcessing(lastNode.getCompleteClassName())) {
                 if (variableNodeMap.get(variableName).contains(lastNode)) {
@@ -2852,11 +2668,10 @@ public class GraphCreator extends GraphConverter {
                 }
                 if (lastNode.getParentNode() != null) {
                     lastNode.getParentNode().getChildNodes().remove(lastNode);
-                    removeNode(lastNode);
                     lastNode = lastNode.getParentNode();
                 } else {
                     lastNode = null;
-                    graph.setRoot(null);//构造数据时需要设置回去
+                    groum.setRoot(null);
                 }
 
             }
@@ -2870,12 +2685,12 @@ public class GraphCreator extends GraphConverter {
         tempViriableName = null;
     }
 
-    protected void dealFieldAccessExpr(FieldAccessExpr n, GraphNode node) {
+    protected void dealFieldAccessExpr(FieldAccessExpr n, GroumNode node) {
         Expression expression = n.getScope();
         dealFieldAccessExprScope(expression, n, node);
     }
 
-    protected void dealUnaryExpr(UnaryExpr n, GraphNode node) {
+    protected void dealUnaryExpr(UnaryExpr n, GroumNode node) {
         Expression expr = n.getExpression();
         String operator = n.getOperator().toString();
         //handel operator
@@ -2902,9 +2717,10 @@ public class GraphCreator extends GraphConverter {
         } else if (expr instanceof NameExpr) {
             setNodeClassAndMethod(node, getVariableType(class_variable.get(((NameExpr) expr).getName()), false), class_name_map.get(getVariableType(class_variable.get(((NameExpr) expr).getName()), false)), operator, operator);
         } else if (expr instanceof MethodCallExpr) {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
+            //System.err.println(n + " " + "can not be parsed");
         }
         node.setControl(false);
         node.setExit(false);
@@ -2912,24 +2728,24 @@ public class GraphCreator extends GraphConverter {
             //addNode(userClassProcessing.createUnaryExprNode());
         } else {
             if (!verifyMethodNameAndParameterOfSpecial(node, node.getClassName())) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
+                //System.err.println(n.toString() + ": can not be parsed");
             }
         }
     }
 
-    protected void dealMethodExpr(MethodCallExpr n, GraphNode node) {
-        Expression expr = n.getScope().get();
+    protected void dealMethodExpr(MethodCallExpr n, GroumNode node) {
+        Expression expr = n.getScope().isPresent() ? n.getScope().get() : null;
         List<Expression> list = n.getArguments();
         String methodName = n.getNameAsString();
         node.setControl(false);
         node.setExit(false);
-        node.setVariableName(globalVariableName, globalType, variableCount);
+        node.setVariableName(globalVariableName,globalType,variableCount);
         list = dealContinuedMethodCall(expr, methodName, list, node);
     }
 
-    protected List<Expression> dealContinuedMethodCall(Expression n, String methodName, List<Expression> list, GraphNode methodNode) {
-        GraphNode node = new GraphNode();
-        setInfo(node);
+    protected List<Expression> dealContinuedMethodCall(Expression n, String methodName, List<Expression> list, GroumNode methodNode) {
+        GroumNode node = new GroumNode();
         addScope(node);
         node.setControl(false);
         node.setExit(false);
@@ -2938,26 +2754,21 @@ public class GraphCreator extends GraphConverter {
             /*get the type of scope*/
             if (n instanceof StringLiteralExpr) {
                 setNodeClass(node, "String", "java.lang.String");
-                methodNode.getArgumentList().add(n.toString());
             } else if (n instanceof CharLiteralExpr) {
                 setNodeClass(node, "char", "char");
-                methodNode.getArgumentList().add(n.toString());
             } else if (n instanceof IntegerLiteralExpr) {
                 setNodeClass(node, "Integer", "java.lang.Integer");
-                methodNode.getArgumentList().add(n.toString());
             } else if (n instanceof DoubleLiteralExpr) {
                 setNodeClass(node, "Double", "java.lang.Double");
-                methodNode.getArgumentList().add(n.toString());
             } else if (n instanceof BooleanLiteralExpr) {
                 setNodeClass(node, "Boolean", "java.lang.Boolean");
-                methodNode.getArgumentList().add(n.toString());
             } else if (n instanceof NameExpr) {
                 if (class_name_map.containsKey(n.toString())) {
                     setNodeClass(node, n.toString(), class_name_map.get(n.toString()));
-                    methodNode.getArgumentList().add(n.toString());
                 } else {
                     String variableName = n.toString();
                     String className = new String("");
+                    //variable_use_map.put(n.toString(),//variable_use_map.get(n.toString()) + 1);
                     if (class_variable.get(variableName) != null) {
                         className = class_variable.get(variableName);
                         className = getVariableType(className, false);
@@ -2966,7 +2777,6 @@ public class GraphCreator extends GraphConverter {
                             className = className.substring(0, index);
                         }
                         setNodeClass(node, className, class_name_map.get(className));
-                        methodNode.getArgumentList().add(variableName);
                     } else {
                         setNodeClassAndMethod(node, "userDefinedClass", "userDefinedClass", "Method", "Method");
                         //parsedFlag = false;
@@ -2978,13 +2788,10 @@ public class GraphCreator extends GraphConverter {
                 String[] strs = node.getCompleteClassName().split("\\.");
                 setNodeClass(node, strs[strs.length - 1], node.getCompleteClassName());
                 setNodeMethod(node, "", "");
-                for(String s : node.getArgumentList()){
-                    methodNode.getArgumentList().add(s);
-                }
             } else if (n instanceof FieldAccessExpr) {
                 FieldAccessExpr expr = (FieldAccessExpr) n;
                 if (jdkList.contains(expr.toString())) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
                 } else {
                     dealFieldAccessExpr(expr, methodNode);
                     if (returnType != null) {
@@ -3000,7 +2807,7 @@ public class GraphCreator extends GraphConverter {
                 }
             } else if (n instanceof MethodCallExpr) {
                 MethodCallExpr expr = (MethodCallExpr) n;
-                List<Expression> tempList = dealContinuedMethodCall(expr.getScope().isPresent() ? expr.getScope().get() : null, expr.getNameAsString(), expr.getArguments(), methodNode);
+                List<Expression> tempList = dealContinuedMethodCall(expr.getScope().get(), expr.getNameAsString(), expr.getArguments(), methodNode);
                 if (returnType != null) {
                     String[] strs = returnType.split("\\.");
                     setNodeClass(node, strs[strs.length - 1], returnType);
@@ -3017,19 +2824,24 @@ public class GraphCreator extends GraphConverter {
                 List<Expression> tempList = dealContinuedMethodCall(expr, methodName, list, methodNode);
                 node = null;
             } else if (n instanceof ObjectCreationExpr) {
-                GraphNode tempNode = lastNode;
+                GroumNode tempNode = lastNode;
                 convert((ObjectCreationExpr) n);
                 if (lastNode != null && !lastNode.equals(tempNode)) {
                     if (!methodNode.getDataDependency().contains(lastNode)) {
                         methodNode.getDataDependency().add(lastNode);
                     }
-                    for (GraphNode graphNode : methodNode.getDataDependency()) {
-                        boolean addNodeFlag = graph.addNode (graphNode, methodNode, mutexList, "d");
+                    for (GroumNode groumNode : lastNode.getDataDependency()) {
+                        if (!methodNode.getDataDependency().contains(groumNode)) {
+                            methodNode.getDataDependency().add(groumNode);
+                        }
+                    }
+                    for(GroumNode groumNode: methodNode.getDataDependency()){
+                        groum.addNode(groumNode, methodNode, mutexList);
                     }
                     if (conditionFlag || assignFlag || variableDeclarationFlag) {
                         if (tempViriableName != null) {
                             objectCreationNode = lastNode;
-                            if (lastNode != null) {
+                            if(lastNode != null) {
                                 addVariableToNodeMap(tempViriableName, objectCreationNode);
                                 if (!variableDeclarationFlag) {
                                     binaryNodeList.add(objectCreationNode);
@@ -3040,7 +2852,7 @@ public class GraphCreator extends GraphConverter {
                                 binaryFlag = true;
                             }
                         } else {
-                            parsedFlag = false;//构造数据时得设置回去
+                            parsedFlag = false;
                         }
                     }
                     String type = getMethodReturnType(lastNode);
@@ -3059,9 +2871,9 @@ public class GraphCreator extends GraphConverter {
                 }
 
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             }
-            /*get the type of each argument*/
+             /*get the type of each argument*/
             if (node != null) {
                 if (list != null) {
                     for (int i = 0; i < list.size(); i++) {
@@ -3106,7 +2918,7 @@ public class GraphCreator extends GraphConverter {
                     setNodeClass(node, "userDefinedClass", "userDefinedClass");
                 }
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             }
             //判断是否为一个正确的API调用
             if (node.getCompleteClassName() != null && !node.getCompleteClassName().equals("userDefinedClass")) {
@@ -3114,7 +2926,7 @@ public class GraphCreator extends GraphConverter {
                     setNodeClass(methodNode, node.getClassName(), node.getCompleteClassName());
                 }
                 if (!verifyMethodNameAndParameter(node, list)) {
-                    parsedFlag = false;//构造数据时得设置回去
+                    parsedFlag = false;
                 } else {
                     if (methodNode.getMethodName() == null) {
                         setNodeMethod(methodNode, node.getMethodName(), node.getCompleteMethodName());
@@ -3124,23 +2936,23 @@ public class GraphCreator extends GraphConverter {
                     returnType = getMethodReturnType(node);
                 }
             } else if (node.getCompleteClassName() == null) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             } else if (node.getCompleteClassName().equals("userDefinedClass")) {
                 //if (methodNode.getClassName() == null) {
                 setNodeClass(methodNode, "userDefinedClass", "userDefinedClass");
                 returnType = "userDefinedClass";
                 //}
             } else {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
             }
         }
         return args;
     }
 
-    protected String getArguments(List<Expression> args, String arguments, GraphNode methodNode) {
+    protected String getArguments(List<Expression> args, String arguments, GroumNode methodNode) {
         if (args.size() > 0) {
             for (int i = 0; i < args.size(); i++) {
-                GraphNode judgeNode = lastNode;
+                GroumNode judgeNode = lastNode;
                 if (i > 0) {
                     arguments += ",";
                 }
@@ -3155,27 +2967,28 @@ public class GraphCreator extends GraphConverter {
                 } else if (args.get(i).getClass().getSimpleName().equals("BooleanLiteralExpr")) {
                     arguments += "boolean";
                 } else if (args.get(i).getClass().getSimpleName().equals("UnaryExpr")) {
-                    GraphNode node = new GraphNode();
-                    setInfo(node);
+                    GroumNode node = new GroumNode();
                     addScope(node);
                     setNodeStatementAndVariable(node);
                     dealUnaryExpr((UnaryExpr) args.get(i), node);
                     arguments += node.getClassName();
-                    node.setDataDependencyFlag("null");
                 } else if (args.get(i).getClass().getSimpleName().equals("NameExpr")) {
                     if (class_variable.get(args.get(i).toString()) != null) {
                         arguments += getVariableType(class_variable.get(args.get(i).toString()), true);
+                        //variable_use_map.put(args.get(i).toString(),//variable_use_map.get(args.get(i).toString()) + 1);
                     } else if (class_variable.get(args.get(i).toString() + "[]") != null) {
                         arguments += getVariableType(class_variable.get(args.get(i).toString() + "[]"), true);
+                        //variable_use_map.put(args.get(i).toString() + "[]",//variable_use_map.get(args.get(i).toString() + "[]") + 1);
                     } else if (class_variable.get(args.get(i).toString() + "[][]") != null) {
                         arguments += getVariableType(class_variable.get(args.get(i).toString() + "[][]"), true);
+                        //variable_use_map.put(args.get(i).toString() + "[][]",//variable_use_map.get(args.get(i).toString() + "[][]") + 1);
                     } else {
                         arguments += "null";
                     }
                 } else if (args.get(i).getClass().getSimpleName().equals("BinaryExpr")) {
                     if (((BinaryExpr) args.get(i)).getOperator().toString().equals("times") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("divide")
                             || ((BinaryExpr) args.get(i)).getOperator().toString().equals("remainder")) {
-                        parsedFlag = false;//构造数据时得设置回去
+                        parsedFlag = false;
                         //System.err.println(args.get(i) + " " + "can not be parsed");
                     } else if (((BinaryExpr) args.get(i)).getOperator().toString().equals("less") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("lessEquals")
                             || ((BinaryExpr) args.get(i)).getOperator().toString().equals("greater") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("greaterEquals")
@@ -3208,20 +3021,18 @@ public class GraphCreator extends GraphConverter {
                     expressionList.add(expr.getInner());
                     arguments = getArguments(expressionList, arguments, methodNode);
                 } else if (args.get(i).getClass().getSimpleName().equals("ArrayAccessExpr")) {
-                    GraphNode node = new GraphNode();
-                    setInfo(node);
+                    GroumNode node = new GroumNode();
                     addScope(node);
                     setNodeStatementAndVariable(node);
                     ArrayAccessExpr expr = (ArrayAccessExpr) args.get(i);
                     dealArrayAccessExprVariableType(expr, node);
                     arguments += filterSquareBracket(node.getClassName());
-                    node.setDataDependencyFlag("null");
                 } else if (args.get(i).getClass().getSimpleName().equals("CastExpr")) {
                     CastExpr expr = (CastExpr) args.get(i);
                     arguments += expr.getType();
                 } else if (args.get(i).getClass().getSimpleName().equals("ObjectCreationExpr")) {
                     ObjectCreationExpr expr = (ObjectCreationExpr) args.get(i);
-                    GraphNode tempNode = lastNode;
+                    GroumNode tempNode = lastNode;
                     convert(expr);
                     if (lastNode != null && !lastNode.equals(tempNode)) {
                         if (tempViriableName != null) {
@@ -3230,45 +3041,52 @@ public class GraphCreator extends GraphConverter {
                                 binaryNodeList.add(lastNode);
                             }
                         }
-                        if (!userClassProcessing.isUserClassProcessing(methodNode.getCompleteClassName())) {
+                        if(!userClassProcessing.isUserClassProcessing(methodNode.getCompleteClassName())) {
                             if (!methodNode.getDataDependency().contains(lastNode)) {
                                 methodNode.getDataDependency().add(lastNode);
                             }
-                            for (GraphNode graphNode : methodNode.getDataDependency()) {
-                                boolean addNodeFlag = graph.addNode (graphNode, methodNode, mutexList, "d");
+                            for (GroumNode groumNode : lastNode.getDataDependency()) {
+                                if (!methodNode.getDataDependency().contains(groumNode)) {
+                                    methodNode.getDataDependency().add(groumNode);
+                                }
+                            }
+                            for (GroumNode groumNode : methodNode.getDataDependency()) {
+                                groum.addNode(groumNode, methodNode, mutexList);
                             }
                         }
-                        lastNode.setDataDependencyFlag("null");
                     }
                     arguments += expr.getType();
                 } else if (args.get(i).getClass().getSimpleName().equals("MethodCallExpr")) {
-                    GraphNode node = new GraphNode();
-                    setInfo(node);
+                    GroumNode node = new GroumNode();
                     addScope(node);
                     setNodeStatementAndVariable(node);
                     node.setVariablePreserved(true);
                     MethodCallExpr n = (MethodCallExpr) args.get(i);
                     dealMethodExpr(n, node);
                     if (node.getCompleteClassName() != null && !node.getCompleteClassName().equals("userDefinedClass")) {
-                        boolean flag = addNode(node, "c");
-                        checkVariableUsed(n, true, node,true,flag);
+                        addNode(node);
+                        checkVariableUsed(n, true, node);
                         if (tempViriableName != null) {
                             addVariableToNodeMap(tempViriableName, node);
                             if (!variableDeclarationFlag) {
                                 binaryNodeList.add(node);
                             }
                         }
-                        if (!userClassProcessing.isUserClassProcessing(methodNode.getCompleteClassName())) {
+                        if(!userClassProcessing.isUserClassProcessing(methodNode.getCompleteClassName())) {
                             if (!methodNode.getDataDependency().contains(node)) {
                                 methodNode.getDataDependency().add(node);
                             }
-                            for (GraphNode graphNode : methodNode.getDataDependency()) {
-                                boolean addNodeFlag = graph.addNode (graphNode, methodNode, mutexList, "d");
+                            for (GroumNode groumNode : node.getDataDependency()) {
+                                if (!methodNode.getDataDependency().contains(groumNode)) {
+                                    methodNode.getDataDependency().add(groumNode);
+                                }
+                            }
+                            for (GroumNode groumNode : methodNode.getDataDependency()) {
+                                groum.addNode(groumNode, methodNode, mutexList);
                             }
                         }
-                        node.setDataDependencyFlag("null");
                     } else {
-                        checkVariableUsed(n, false, null,true,true);
+                        checkVariableUsed(n, false, null);
                     }
                     String methodReturnType = getMethodReturnType(node);
                     if (methodReturnType != null && methodReturnType.contains(".")) {
@@ -3281,34 +3099,36 @@ public class GraphCreator extends GraphConverter {
                         arguments += "null";
                     }
                 } else if (args.get(i).getClass().getSimpleName().equals("FieldAccessExpr")) {
-                    GraphNode node = new GraphNode();
-                    setInfo(node);
+                    GroumNode node = new GroumNode();
                     addScope(node);
                     node.setVariablePreserved(true);
                     setNodeStatementAndVariable(node);
                     FieldAccessExpr n = (FieldAccessExpr) args.get(i);
                     dealFieldAccessExpr(n, node);
                     if (!node.getCompleteClassName().equals("userDefinedClass")) {
-                        boolean flag = addNode(node, "c");
-                        checkVariableUsed(n, true, node,true,flag);
+                        addNode(node);
+                        checkVariableUsed(n, true, node);
                         if (tempViriableName != null) {
                             addVariableToNodeMap(tempViriableName, node);
                             if (!variableDeclarationFlag) {
                                 binaryNodeList.add(node);
                             }
                         }
-                        if (!userClassProcessing.isUserClassProcessing(methodNode.getCompleteClassName())) {
+                        if(!userClassProcessing.isUserClassProcessing(methodNode.getCompleteClassName())) {
                             if (!methodNode.getDataDependency().contains(node)) {
                                 methodNode.getDataDependency().add(node);
                             }
-                            for (GraphNode graphNode : methodNode.getDataDependency()) {
-                                boolean addNodeFlag = graph.addNode (graphNode, methodNode, mutexList, "d");
+                            for (GroumNode groumNode : node.getDataDependency()) {
+                                if (!methodNode.getDataDependency().contains(groumNode)) {
+                                    methodNode.getDataDependency().add(groumNode);
+                                }
+                            }
+                            for (GroumNode groumNode : methodNode.getDataDependency()) {
+                                groum.addNode(groumNode, methodNode, mutexList);
                             }
                         }
-                        //node.setVariableName("null",node.getType(),node.getVariableCount());
-                        node.setDataDependencyFlag("null");
                     } else {
-                        checkVariableUsed(n, false, null,true,true);
+                        checkVariableUsed(n, false, null);
                     }
                     String methodReturnType = getMethodReturnType(node);
                     if (methodReturnType != null && methodReturnType.contains(".")) {
@@ -3323,8 +3143,128 @@ public class GraphCreator extends GraphConverter {
                 } else {
                     arguments += "null";
                 }
-                if (lastNode != null && !lastNode.equals(judgeNode)) {
+                if(lastNode != null && !lastNode.equals(judgeNode)){
                     binaryFlag = true;
+                }
+            }
+        }
+        return arguments;
+    }
+
+    protected String getArguments2(List<Expression> args, String arguments) {
+        if (args.size() > 0) {
+            for (int i = 0; i < args.size(); i++) {
+                if (i > 0) {
+                    arguments += ",";
+                }
+                if (args.get(i).getClass().getSimpleName().equals("StringLiteralExpr")) {
+                    arguments += "String";
+                } else if (args.get(i).getClass().getSimpleName().equals("CharLiteralExpr")) {
+                    arguments += "char";
+                } else if (args.get(i).getClass().getSimpleName().equals("IntegerLiteralExpr")) {
+                    arguments += "int";
+                } else if (args.get(i).getClass().getSimpleName().equals("DoubleLiteralExpr")) {
+                    arguments += "double";
+                } else if (args.get(i).getClass().getSimpleName().equals("BooleanLiteralExpr")) {
+                    arguments += "boolean";
+                } else if (args.get(i).getClass().getSimpleName().equals("UnaryExpr")) {
+                    GroumNode node = new GroumNode();
+                    addScope(node);
+                    dealUnaryExpr((UnaryExpr) args.get(i), node);
+                    arguments += node.getClassName();
+                } else if (args.get(i).getClass().getSimpleName().equals("NameExpr")) {
+                    if (class_variable.get(args.get(i).toString()) != null) {
+                        arguments += getVariableType(class_variable.get(args.get(i).toString()), true);
+                        //variable_use_map.put(args.get(i).toString(),//variable_use_map.get(args.get(i).toString()) + 1);
+                    } else if (class_variable.get(args.get(i).toString() + "[]") != null) {
+                        arguments += getVariableType(class_variable.get(args.get(i).toString() + "[]"), true);
+                        //variable_use_map.put(args.get(i).toString() + "[]",//variable_use_map.get(args.get(i).toString() + "[]") + 1);
+                    } else if (class_variable.get(args.get(i).toString() + "[][]") != null) {
+                        arguments += getVariableType(class_variable.get(args.get(i).toString() + "[][]"), true);
+                        //variable_use_map.put(args.get(i).toString() + "[][]",//variable_use_map.get(args.get(i).toString() + "[][]") + 1);
+                    } else {
+                        arguments += "null";
+                    }
+                } else if (args.get(i).getClass().getSimpleName().equals("BinaryExpr")) {
+                    if (((BinaryExpr) args.get(i)).getOperator().toString().equals("times") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("divide")
+                            || ((BinaryExpr) args.get(i)).getOperator().toString().equals("remainder")) {
+                        parsedFlag = false;
+                        //System.err.println(args.get(i) + " " + "can not be parsed");
+                    } else if (((BinaryExpr) args.get(i)).getOperator().toString().equals("less") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("lessEquals")
+                            || ((BinaryExpr) args.get(i)).getOperator().toString().equals("greater") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("greaterEquals")
+                            || ((BinaryExpr) args.get(i)).getOperator().toString().equals("equals") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("notEquals")) {
+                        arguments += "null";
+                    } else if (((BinaryExpr) args.get(i)).getOperator().toString().equals("or") || ((BinaryExpr) args.get(i)).getOperator().toString().equals("and")
+                            || ((BinaryExpr) args.get(i)).getOperator().toString().equals("not")) {
+                        arguments += "boolean";
+                    } else {
+                        BinaryExpr expr = (BinaryExpr) args.get(i);
+                        List<String> typeList = new ArrayList<>();
+                        List<Expression> rightExpressionList = new ArrayList<>();
+                        rightExpressionList.add(expr.getRight());
+                        String rightType = new String("");
+                        rightType = getArguments2(rightExpressionList, rightType);
+                        List<Expression> leftExpressionList = new ArrayList<>();
+                        leftExpressionList.add(expr.getLeft());
+                        String leftType = new String("");
+                        leftType = getArguments2(leftExpressionList, leftType);
+                        typeList.add(rightType);
+                        typeList.add(leftType);
+                        String binaryType = dealBinaryReturnType(typeList);
+                        arguments += binaryType;
+                    }
+                } else if (args.get(i).getClass().getSimpleName().equals("ConditionalExpr")) {
+                    arguments += "null";
+                } else if (args.get(i).getClass().getSimpleName().equals("EnclosedExpr")) {
+                    EnclosedExpr expr = (EnclosedExpr) args.get(i);
+                    List<Expression> expressionList = new ArrayList<>();
+                    expressionList.add(expr.getInner());
+                    arguments = getArguments2(expressionList, arguments);
+                } else if (args.get(i).getClass().getSimpleName().equals("ArrayAccessExpr")) {
+                    GroumNode node = new GroumNode();
+                    addScope(node);
+                    ArrayAccessExpr expr = (ArrayAccessExpr) args.get(i);
+                    dealArrayAccessExprVariableType(expr, node);
+                    arguments += filterSquareBracket(node.getClassName());
+                } else if (args.get(i).getClass().getSimpleName().equals("CastExpr")) {
+                    CastExpr expr = (CastExpr) args.get(i);
+                    arguments += expr.getType();
+                } else if (args.get(i).getClass().getSimpleName().equals("ObjectCreationExpr")) {
+                    ObjectCreationExpr expr = (ObjectCreationExpr) args.get(i);
+                    //convert(expr);
+                    arguments += expr.getType();
+                } else if (args.get(i).getClass().getSimpleName().equals("MethodCallExpr")) {
+                    GroumNode node = new GroumNode();
+                    addScope(node);
+                    MethodCallExpr n = (MethodCallExpr) args.get(i);
+                    dealMethodExpr(n, node);
+                    String methodReturnType = getMethodReturnType(node);
+                    if (methodReturnType != null && methodReturnType.contains(".")) {
+                        String[] strs = methodReturnType.split("\\.");
+                        methodReturnType = strs[strs.length - 1];
+                    }
+                    if (methodReturnType != null) {
+                        arguments += methodReturnType;
+                    } else {
+                        arguments += "null";
+                    }
+                } else if (args.get(i).getClass().getSimpleName().equals("FieldAccessExpr")) {
+                    GroumNode node = new GroumNode();
+                    addScope(node);
+                    FieldAccessExpr n = (FieldAccessExpr) args.get(i);
+                    dealFieldAccessExpr(n, node);
+                    String methodReturnType = getMethodReturnType(node);
+                    if (methodReturnType != null && methodReturnType.contains(".")) {
+                        String[] strs = methodReturnType.split("\\.");
+                        methodReturnType = strs[strs.length - 1];
+                    }
+                    if (methodReturnType != null) {
+                        arguments += methodReturnType;
+                    } else {
+                        arguments += "null";
+                    }
+                } else {
+                    arguments += "null";
                 }
             }
         }
@@ -3337,24 +3277,12 @@ public class GraphCreator extends GraphConverter {
             if (parentType.equals(childType)) {
                 type = parentType;
             } else {
-                if ("userDefinedClass".equals(childType)) {
-                    String tempType = parentType.replaceAll("\\[\\]", "");
-                    if (!userClassProcessing.isUserClassProcessing(class_name_map.get(tempType))) {
-                        type = parentType;
-                    } else {
-                        type = parentType + " " + childType;
-                    }
-                } else {
-                    if("Object".equals(childType) || "Object[]".equals(childType) || "Object[][]".equals(childType)){
-                        type = parentType;
-                    }else {
-                        type = parentType + " " + childType;
-                    }
-                }
+                type = parentType + " " + childType;
             }
             class_variable.replace(variable, type);
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
+            //System.err.println("null exception");
         }
     }
 
@@ -3372,12 +3300,13 @@ public class GraphCreator extends GraphConverter {
                 type = str;
             }
         } else {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
+            //System.err.println( "variable type  can not be parsed");
         }
         return type;
     }
 
-    protected boolean verifyMethodNameAndParameterOfSpecial(GraphNode node, String className) {
+    protected boolean verifyMethodNameAndParameterOfSpecial(GroumNode node, String className) {
         List<String> list = new ArrayList<>();
         ConstructVocabulary constructVocabulary = new ConstructVocabulary();
         constructVocabulary.addSpecialVocabulary(className, list);
@@ -3389,7 +3318,7 @@ public class GraphCreator extends GraphConverter {
         return false;
     }
 
-    protected boolean verifyFieldAccess(GraphNode node) {
+    protected boolean verifyFieldAccess(GroumNode node) {
         //先判断是否为单独的FieldAccess
         MethodReflection methodReflection_1 = new MethodReflection();
         List<String> fieldAccessList = methodReflection_1.getAllCompleteStaticFields(class_name_map.get(node.getClassName()));
@@ -3402,7 +3331,7 @@ public class GraphCreator extends GraphConverter {
     }
 
     // this method is used to compare whether the node.toSting() is consistent with method declaration
-    protected boolean verifyMethodNameAndParameter(GraphNode node, List<Expression> arguments) {
+    protected boolean verifyMethodNameAndParameter(GroumNode node, List<Expression> arguments) {
         MethodReflection methodReflection = new MethodReflection();
         List<String> methodDeclarationList = methodReflection.getAllMethodDeclaration(class_name_map.get(node.getClassName()));
         Map<String, List<String>> methodAndParameterTypeMap = methodReflection.getMethodAndParameterTypeMap();
@@ -3426,7 +3355,7 @@ public class GraphCreator extends GraphConverter {
                 modifyMethodDeclarationOfNode(matchedList.get(0), node, simpleToCompleteNameMap);
                 return true;
             } else if (matchedList.size() > 1) {
-                String result = chooseTheCorrectMethodDeclaration(matchedList, arguments, node, methodAndParameterTypeMap, methodAndParameterCompleteTypeMap);
+                String result = chooseTheCorrectMethodDeclaration(matchedList, arguments, methodAndParameterTypeMap, methodAndParameterCompleteTypeMap);
                 if (result.equals("")) {
                     return false;
                 } else {
@@ -3443,7 +3372,7 @@ public class GraphCreator extends GraphConverter {
     }
 
     //this method is used modify the method name and parameter in node methodName
-    protected void modifyMethodDeclarationOfNode(String str, GraphNode node, Map<String, String> map) {
+    protected void modifyMethodDeclarationOfNode(String str, GroumNode node, Map<String, String> map) {
         int startIndex = str.indexOf('.') + 1;
         int endIndex = str.length();
         String methodNameAndArguments = str.substring(startIndex, endIndex);
@@ -3452,17 +3381,13 @@ public class GraphCreator extends GraphConverter {
     }
 
     // this method is used to choose the method declaration that is the most likely to be the correct one
-    protected String chooseTheCorrectMethodDeclaration(List<String> matchedList, List<Expression> arguments, GraphNode node,Map<String, List<String>> methodAndParameterTypeMap, Map<String, List<String>> methodAndParameterCompleteTypeMap) {
+    protected String chooseTheCorrectMethodDeclaration(List<String> matchedList, List<Expression> arguments, Map<String, List<String>> methodAndParameterTypeMap, Map<String, List<String>> methodAndParameterCompleteTypeMap) {
         String methodDeclaration = new String("");
         List<String> candidateMethodList = new ArrayList<>();
         //init the candidate list of possible matched method declarations
         for (int i = 0; i < matchedList.size(); i++) {
             candidateMethodList.add(matchedList.get(i));
         }
-        String str = node.toString();
-        int index = str.indexOf('(');
-        str = str.substring(index + 1,str.length() - 1);
-        String[] types = str.split(",");
         //judge the correct method declaration
         Map<String, Integer> map = new HashMap<>();
         for (int i = 0; i < matchedList.size(); i++) {
@@ -3471,7 +3396,10 @@ public class GraphCreator extends GraphConverter {
             if (parameterList.size() == arguments.size()) {
                 int matchedTypeCount = 0;
                 for (int j = 0; j < arguments.size(); j++) {
-                    String parameterType = types[j];
+                    List<Expression> list = new ArrayList<>();
+                    list.add(arguments.get(j));
+                    String parameterType = new String("");
+                    parameterType = getArguments2(list, parameterType);
                     if (parameterList.get(j).equals(parameterType)) {
                         matchedTypeCount++;
                     } else if (judgeRelationshipOfCast(parameterType, parameterList.get(j))) {//judge whether exits cast relationship
@@ -3504,7 +3432,10 @@ public class GraphCreator extends GraphConverter {
             List<String> parameterList = methodAndParameterTypeMap.get(candidateMethodList.get(i));
             int completelyMatchedTypeCount = 0;
             for (int j = 0; j < arguments.size(); j++) {
-                String parameterType = types[j];
+                List<Expression> list = new ArrayList<>();
+                list.add(arguments.get(j));
+                String parameterType = new String("");
+                parameterType = getArguments2(list, parameterType);
                 if (parameterList.get(j).equals(parameterType)) {
                     completelyMatchedTypeCount++;
                 }
@@ -3534,7 +3465,7 @@ public class GraphCreator extends GraphConverter {
             }
         }
         if(methodDeclaration.equals("")){
-            if(matchedList.size() > 0) {
+            if(matchedList.size() > 0){
                 methodDeclaration = matchedList.get(0);
             }
         }
@@ -3554,10 +3485,12 @@ public class GraphCreator extends GraphConverter {
             }
         } catch (Exception e) {
             if (!(e instanceof ClassNotFoundException)) {
-                parsedFlag = false;//构造数据时得设置回去
+                parsedFlag = false;
+                //System.err.println(e.getMessage());
             }
         } catch (Error e) {
-            parsedFlag = false;//构造数据时得设置回去
+            parsedFlag = false;
+            //System.err.println(e.getMessage());
         }
         return false;
     }
@@ -3590,19 +3523,19 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    protected void setNodeClassAndMethod(GraphNode node, String clazz, String completeClazz, String method, String completeMethod) {
+    protected void setNodeClassAndMethod(GroumNode node, String clazz, String completeClazz, String method, String completeMethod) {
         node.setClassName(clazz);
         node.setCompleteClassName(completeClazz);
         node.setMethodName(method);
         node.setCompleteMethodName(completeMethod);
     }
 
-    protected void setNodeClass(GraphNode node, String clazz, String completeClazz) {
+    protected void setNodeClass(GroumNode node, String clazz, String completeClazz) {
         node.setClassName(clazz);
         node.setCompleteClassName(completeClazz);
     }
 
-    protected void setNodeMethod(GraphNode node, String method, String completeMethod) {
+    protected void setNodeMethod(GroumNode node, String method, String completeMethod) {
         node.setMethodName(method);
         node.setCompleteMethodName(completeMethod);
     }
@@ -3626,15 +3559,15 @@ public class GraphCreator extends GraphConverter {
     }
 
 
-    protected boolean isAllAnnotationStmt(List list, EndFlag endFlag) {
+    protected boolean isAllAnnotationStmt(List list) {
         boolean flag = true;
         for (int i = 0; i < list.size(); i++) {
             String str = list.get(i).toString();
             str = str.replaceAll("\n", "");
             str = str.replaceAll(" ", "");
             if (list.get(i) instanceof LineComment || list.get(i) instanceof BlockComment) {
-                if ((str.equals("//hole") || str.startsWith("/*hole*/")) && holeFlag) {
-                    endFlag.endFlag = false;
+                if (str.equals("//hole") || str.startsWith("/*hole*/")) {
+                    endFlag = false;
                     flag = false;
                 } else {
                     continue;
@@ -3652,22 +3585,22 @@ public class GraphCreator extends GraphConverter {
     }
 
     //used to check whether declared variable is used
-    protected void checkVariableUsed(Expression n, boolean variablePreserved, GraphNode node, boolean addDependencyFlag, boolean flag) {
+    protected void checkVariableUsed(Expression n, boolean variablePreserved, GroumNode node) {
         if (!removeConditionNodeFlag) {
             if (n instanceof MethodCallExpr) {
                 MethodCallExpr expr = (MethodCallExpr) n;
-                checkVariableUsed(expr.getArguments(), variablePreserved, node, addDependencyFlag, flag);
-                if (expr.getScope() != null) {
+                checkVariableUsed(expr.getArguments(), variablePreserved, node);
+                if (expr.getScope().isPresent()) {
                     List<Expression> list = new ArrayList<>();
                     list.add(expr.getScope().get());
-                    checkVariableUsed(list, variablePreserved, node, addDependencyFlag, flag);
+                    checkVariableUsed(list, variablePreserved, node);
                 }
             } else if (n instanceof FieldAccessExpr) {
                 FieldAccessExpr expr = (FieldAccessExpr) n;
                 if (expr.getScope() != null) {
                     List<Expression> list = new ArrayList<>();
                     list.add(expr.getScope());
-                    checkVariableUsed(list, variablePreserved, node, addDependencyFlag, flag);
+                    checkVariableUsed(list, variablePreserved, node);
                 }
             } else if (n instanceof NameExpr || n instanceof ArrayAccessExpr) {
                 String arg = filterSquareBracket(n.toString());
@@ -3683,7 +3616,7 @@ public class GraphCreator extends GraphConverter {
                 } else {
                     if (variablePreserved) {
                         String variableName = judgeIsVariableInAllClassFieldAndMethodArgument(arg);
-                        if (variableName != null && !usedClassFieldAndMethodArgumentVariable.contains(variableName) && !isVariableBelong2UserDefinedClass(variableName)) {
+                        if (variableName != null && !usedClassFieldAndMethodArgumentVariable.contains(variableName)) {
                             usedClassFieldAndMethodArgumentVariable.add(variableName);
                         }
                     }
@@ -3692,83 +3625,76 @@ public class GraphCreator extends GraphConverter {
                 Expression right = ((BinaryExpr) n).getRight();
                 Expression left = ((BinaryExpr) n).getLeft();
                 if (right != null) {
-                    checkVariableUsed(right, variablePreserved, node,addDependencyFlag, flag);
+                    checkVariableUsed(right, variablePreserved, node);
                 }
                 if (left != null) {
-                    checkVariableUsed(left, variablePreserved, node,addDependencyFlag, flag);
+                    checkVariableUsed(left, variablePreserved, node);
                 }
 
             } else if (n instanceof EnclosedExpr) {
                 EnclosedExpr expr = (EnclosedExpr) n;
-                checkVariableUsed(expr.getInner(), variablePreserved, node,addDependencyFlag, flag);
+                checkVariableUsed(expr.getInner(), variablePreserved, node);
             } else if (n instanceof ObjectCreationExpr) {
                 ObjectCreationExpr expr = (ObjectCreationExpr) n;
-                checkVariableUsed(((ObjectCreationExpr) n).getArguments(), variablePreserved, node, addDependencyFlag, flag);
+                checkVariableUsed(((ObjectCreationExpr) n).getArguments(), variablePreserved, node);
             }
         }
     }
 
     //used to check whether declared variable is used
-    protected void checkVariableUsed(List<Expression> args, boolean variablePreserved, GraphNode node, boolean addDataDependencyFlag, boolean flag) {
+    protected void checkVariableUsed(List<Expression> args, boolean variablePreserved, GroumNode node) {
         if (!removeConditionNodeFlag) {
             if (args != null) {
                 for (int i = 0; i < args.size(); i++) {
                     if (args.get(i) instanceof NameExpr || args.get(i) instanceof ArrayAccessExpr) {
                         String arg = filterSquareBracket(args.get(i).toString());
-                        //System.err.println(arg + " " + node.getCompleteMethodDeclaration() + " " + addDataDependencyFlag);
                         if (variableNodeMap.containsKey(arg)) {
                             updateVariableState(arg, variablePreserved);
-                            if(addDataDependencyFlag && flag) {
-                                addDataDependencyNode(variableNodeMap.get(arg), node);
-                            }
+                            addDataDependencyNode(variableNodeMap.get(arg), node);
                         } else if (variableNodeMap.containsKey(arg + "[]")) {
                             updateVariableState(arg + "[]", variablePreserved);
-                            if(addDataDependencyFlag && flag) {
-                                addDataDependencyNode(variableNodeMap.get(arg + "[]"), node);
-                            }
+                            addDataDependencyNode(variableNodeMap.get(arg + "[]"), node);
                         } else if (variableNodeMap.containsKey(arg + "[][]")) {
                             updateVariableState(arg + "[][]", variablePreserved);
-                            if(addDataDependencyFlag && flag) {
-                                addDataDependencyNode(variableNodeMap.get(arg + "[][]"), node);
-                            }
+                            addDataDependencyNode(variableNodeMap.get(arg + "[][]"), node);
                         } else {
                             if (variablePreserved) {
                                 String variableName = judgeIsVariableInAllClassFieldAndMethodArgument(arg);
-                                if (variableName != null && !usedClassFieldAndMethodArgumentVariable.contains(variableName) && !isVariableBelong2UserDefinedClass(variableName)) {
+                                if (variableName != null && !usedClassFieldAndMethodArgumentVariable.contains(variableName)) {
                                     usedClassFieldAndMethodArgumentVariable.add(variableName);
                                 }
                             }
                         }
                     } else if (args.get(i) instanceof MethodCallExpr) {
                         MethodCallExpr expr = (MethodCallExpr) args.get(i);
-                        checkVariableUsed(expr.getArguments(), variablePreserved, node, false, flag);
-                        if (expr.getScope() != null) {
+                        checkVariableUsed(expr.getArguments(), variablePreserved, node);
+                        if (expr.getScope().isPresent()) {
                             List<Expression> list = new ArrayList<>();
                             list.add(expr.getScope().get());
-                            checkVariableUsed(list, variablePreserved, node, false, flag);
+                            checkVariableUsed(list, variablePreserved, node);
                         }
                     } else if (args.get(i) instanceof FieldAccessExpr) {
                         FieldAccessExpr expr = (FieldAccessExpr) args.get(i);
                         if (expr.getScope() != null) {
                             List<Expression> list = new ArrayList<>();
                             list.add(expr.getScope());
-                            checkVariableUsed(list, variablePreserved, node, false, flag);
+                            checkVariableUsed(list, variablePreserved, node);
                         }
                     } else if (args.get(i) instanceof BinaryExpr) {
                         Expression right = ((BinaryExpr) args.get(i)).getRight();
                         Expression left = ((BinaryExpr) args.get(i)).getLeft();
                         if (right != null) {
-                            checkVariableUsed(right, variablePreserved, node, false, flag);
+                            checkVariableUsed(right, variablePreserved, node);
                         }
                         if (left != null) {
-                            checkVariableUsed(left, variablePreserved, node, false, flag);
+                            checkVariableUsed(left, variablePreserved, node);
                         }
                     } else if (args.get(i) instanceof EnclosedExpr) {
                         EnclosedExpr expr = (EnclosedExpr) args.get(i);
-                        checkVariableUsed(expr.getInner(), variablePreserved, node,false, flag);
+                        checkVariableUsed(expr.getInner(), variablePreserved, node);
                     } else if (args.get(i) instanceof ObjectCreationExpr) {
                         ObjectCreationExpr expr = (ObjectCreationExpr) args.get(i);
-                        checkVariableUsed(expr, variablePreserved, node,false, flag);
+                        checkVariableUsed(expr, variablePreserved, node);
                     }
                 }
             }
@@ -3797,18 +3723,18 @@ public class GraphCreator extends GraphConverter {
 
 
     //map declared variable to its related node
-    protected void setVariableDeclaration(GraphNode node, String variableName) {
+    protected void setVariableDeclaration(GroumNode node, String variableName) {
         if (lastNode != null && !lastNode.equals(node)) {
             addVariableToNodeMap(variableName, lastNode);
         }
     }
 
     //map declared variable to its related node
-    protected void addVariableToNodeMap(String variableName, GraphNode node) {
+    protected void addVariableToNodeMap(String variableName, GroumNode node) {
         if (variableName != null) {
             node.setVariableDeclaration(true);
             //node.setVariableName(variableName,node.getCompleteClassName());
-            node.setVariableName(globalVariableName, globalType, variableCount);
+            node.setVariableName(globalVariableName,globalType,variableCount);
             node.setPrimitive(isPrimitive(node.getCompleteClassName()));
             if (assignFlag || binaryFlag || conditionAssignFlag) {
                 node.setAssign(true);
@@ -3817,8 +3743,8 @@ public class GraphCreator extends GraphConverter {
                 if (!variableNodeMap.get(variableName).contains(node) && !node.isAssign() && variableNodeMap.get(variableName).size() == 0) {
                     variableNodeMap.get(variableName).add(node);
                 } else if (!variableNodeMap.get(variableName).contains(node) && !node.isAssign() && variableNodeMap.get(variableName).size() > 0) {
-                    for (GraphNode graphNode : variableNodeMap.get(variableName)) {
-                        removeList.add(graphNode);
+                    for (GroumNode groumNode : variableNodeMap.get(variableName)) {
+                        removeList.add(groumNode);
                     }
                     variableNodeMap.get(variableName).removeAll(variableNodeMap.get(variableName));
                     variableNodeMap.get(variableName).add(node);
@@ -3826,7 +3752,7 @@ public class GraphCreator extends GraphConverter {
                     variableNodeMap.get(variableName).add(node);
                 }
             } else {
-                List<GraphNode> list = new ArrayList<>();
+                List<GroumNode> list = new ArrayList<>();
                 list.add(node);
                 variableNodeMap.put(variableName, list);
             }
@@ -3834,15 +3760,15 @@ public class GraphCreator extends GraphConverter {
     }
 
     //用来判断结构体中是否都是无用需要移除的变量声明语句
-    protected boolean isControlUnitWillBeEmpty(GraphNode node) {
-        int totalCount = node.countNodeChildrenExcludeConditionAndEnd(node, new ArrayList<>());
+    protected boolean isControlUnitWillBeEmpty(GroumNode node) {
+        int totalCount = node.countNodeChildrenExcludeConditionAndEnd(node,new ArrayList<>());
         int removeCount = 0;
         if (node != null) {
             for (String key : variableNodeMap.keySet()) {
-                List<GraphNode> list = variableNodeMap.get(key);
+                List<GroumNode> list = variableNodeMap.get(key);
                 if (list != null) {
                     for (int i = 0; i < list.size(); i++) {
-                        if (list.get(i).isPrimitive() && node.isContainRemoveNode(node, list.get(i), new ArrayList<>()) && !list.get(i).isVariablePreserved()) {
+                        if (list.get(i).isPrimitive() && node.isContainRemoveNode(node, list.get(i),new ArrayList<>()) && !list.get(i).isVariablePreserved()) {
                             removeCount++;
                         }
                     }
@@ -3870,47 +3796,40 @@ public class GraphCreator extends GraphConverter {
                 left = null;
             }
             if (right instanceof MethodCallExpr) {
-                GraphNode epxrNode = new GraphNode();
-                setInfo(epxrNode);
+                GroumNode epxrNode = new GroumNode();
                 addScope(epxrNode);
-                epxrNode.setVariableName(globalVariableName, globalType, variableCount);
+                epxrNode.setVariableName(globalVariableName,globalType,variableCount);
                 epxrNode.setVariablePreserved(true);
                 setNodeStatementAndVariable(epxrNode);
                 dealMethodExpr((MethodCallExpr) right, epxrNode);
-                if (!"userDefinedClass".equals(epxrNode.getCompleteClassName())) {
+                if (!epxrNode.getCompleteClassName().equals("userDefinedClass")) {
                     //addNode(assignNew);
-                    boolean fl = addNode(epxrNode, "c");
-                    if(fl) {
-                        addVariableToNodeMap(variableName, epxrNode);
-                    }
+                    addNode(epxrNode);
+                    addVariableToNodeMap(variableName, epxrNode);
                     //将API method作为variable declaration结点
                     //addVariableToNodeMap(variableName,epxrNode);
                     //预先一次判断这个API method是都可以保留
                     //judgeAndSetAPIPreserved(right,epxrNode);
-                    checkVariableUsed((MethodCallExpr) right, true, epxrNode,true,fl);
+                    checkVariableUsed((MethodCallExpr) right, true, epxrNode);
                     flag = false;
                     binaryFlag = true;
                     binaryNodeList.add(epxrNode);
                     //break;
                 } else {
-                    checkVariableUsed((MethodCallExpr) right, false, null,true,true);
-                    removeUserDefinedClassNode(epxrNode);
+                    checkVariableUsed((MethodCallExpr) right, false, null);
                 }
             } else if (right instanceof FieldAccessExpr) {
-                GraphNode epxrNode = new GraphNode();
-                setInfo(epxrNode);
+                GroumNode epxrNode = new GroumNode();
                 addScope(epxrNode);
-                epxrNode.setVariableName(globalVariableName, globalType, variableCount);
+                epxrNode.setVariableName(globalVariableName,globalType,variableCount);
                 epxrNode.setVariablePreserved(true);
                 setNodeStatementAndVariable(epxrNode);
                 dealFieldAccessExpr((FieldAccessExpr) right, epxrNode);
-                if (!"userDefinedClass".equals(epxrNode.getCompleteClassName())) {
+                if (!epxrNode.getCompleteClassName().equals("userDefinedClass")) {
                     //addNode(assignNew);
-                    boolean fl = addNode(epxrNode, "c");
-                    if(fl) {
-                        addVariableToNodeMap(variableName, epxrNode);
-                    }
-                    checkVariableUsed((FieldAccessExpr) right, true, epxrNode,true,fl);
+                    addNode(epxrNode);
+                    addVariableToNodeMap(variableName, epxrNode);
+                    checkVariableUsed((FieldAccessExpr) right, true, epxrNode);
                     //addVariableToNodeMap(variableName,epxrNode);
                     //judgeAndSetAPIPreserved(right,epxrNode);
                     flag = false;
@@ -3918,8 +3837,7 @@ public class GraphCreator extends GraphConverter {
                     binaryNodeList.add(epxrNode);
                     //break;
                 } else {
-                    checkVariableUsed((FieldAccessExpr) right, false, null,true,true);
-                    removeUserDefinedClassNode(epxrNode);
+                    checkVariableUsed((FieldAccessExpr) right, false, null);
                 }
             } else if (right instanceof EnclosedExpr) {
                 flag = dealBinaryExprInVariableDeclarationAndAssignExpr(variableName, ((EnclosedExpr) right).getInner(), flag);
@@ -3927,7 +3845,7 @@ public class GraphCreator extends GraphConverter {
                 flag = dealBinaryExprInVariableDeclarationAndAssignExpr(variableName, right, flag);
             } else if (right instanceof ObjectCreationExpr) {
                 ObjectCreationExpr expr = (ObjectCreationExpr) right;
-                GraphNode tempNode = lastNode;
+                GroumNode tempNode = lastNode;
                 convert(expr);
                 if (lastNode != null && !lastNode.equals(tempNode)) {
                     addVariableToNodeMap(variableName, lastNode);
@@ -3937,21 +3855,20 @@ public class GraphCreator extends GraphConverter {
                 }
             } else if (right instanceof CastExpr) {
                 CastExpr expr = (CastExpr) right;
-                if (expr.getExpression().isMethodCallExpr() ||
-                        expr.getExpression().isFieldAccessExpr() ||
-                        expr.getExpression().isObjectCreationExpr()) {
-                    GraphNode tempNode = lastNode;
+                if (expr.getExpression() instanceof MethodCallExpr ||
+                        expr.getExpression() instanceof FieldAccessExpr ||
+                        expr.getExpression() instanceof ObjectCreationExpr) {
+                    GroumNode tempNode = lastNode;
                     convert(expr);
                     if (lastNode != null && !lastNode.equals(tempNode) && lastNode.getCompleteMethodDeclaration().endsWith(".Cast")) {
-                        GraphNode parentNode = lastNode.getParentNode();
+                        GroumNode parentNode = lastNode.getParentNode();
                         if (parentNode != null) {
                             lastNode.setParentNode(null);
                             parentNode.getChildNodes().remove(lastNode);
-                            removeNode(lastNode);
                             lastNode = parentNode;
                         } else {
                             lastNode = null;
-                            graph.setRoot(null);//构造数据时需要设置回去
+                            groum.setRoot(null);
                         }
                     } else if (lastNode != null && !lastNode.equals(tempNode)) {
                         addVariableToNodeMap(variableName, lastNode);
@@ -3978,37 +3895,6 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    public boolean isVariableBelong2UserDefinedClass(String variableName) {
-        variableName = filterSquareBracket(variableName);
-        if (allClassFieldAndMethodArgumentVariable.contains(variableName)) {
-            String type = class_variable.get(variableName);
-            String completeType = class_name_map.get(type);
-            if(userClassProcessing.isUserClassProcessing(completeType)){
-                return true;
-            }else{
-                return false;
-            }
-        } else if (allClassFieldAndMethodArgumentVariable.contains(variableName + "[]")) {
-            String type = class_variable.get(variableName + "[]");
-            String completeType = class_name_map.get(type);
-            if(userClassProcessing.isUserClassProcessing(completeType)){
-                return true;
-            }else{
-                return false;
-            }
-        } else if (allClassFieldAndMethodArgumentVariable.contains(variableName + "[][]")) {
-            String type = class_variable.get(variableName + "[][]");
-            String completeType = class_name_map.get(type);
-            if(userClassProcessing.isUserClassProcessing(completeType)){
-                return true;
-            }else{
-                return false;
-            }
-        } else {
-            return true;
-        }
-    }
-
     protected boolean isPrimitive(String type) {
         if (type != null) {
             List<String> list = new ArrayList<>();
@@ -4030,22 +3916,37 @@ public class GraphCreator extends GraphConverter {
         return false;
     }
 
-    protected void addSpecialNode(String str) {
-        GraphNode node = new GraphNode();
-        addScope(node);
-        setNodeClassAndMethod(node, str, str, "", "");
-        node.setAddMethodName(false);
-        boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, "c");
-        lastNode = node;
+
+    protected void addEndNode() {
+        GroumNode endNode = new GroumNode();
+        addScope(endNode);
+        setNodeClassAndMethod(endNode, "end", "end", "", "");
+        endNode.setAddMethodName(false);
+        if (lastNode.getCompleteClassName() != null) {
+            if (!lastNode.getCompleteClassName().equals("break") && !lastNode.getCompleteClassName().equals("continue")
+                    && !lastNode.getCompleteClassName().equals("return")) {
+                groum.addNode(lastNode, endNode, mutexList);
+                endParentNode = null;
+            }
+        }
     }
 
-    protected boolean judgeConditionEnd(GraphNode node) {
+    protected void addConditionEndNode() {
+        GroumNode endNode = new GroumNode();
+        addScope(endNode);
+        setNodeClassAndMethod(endNode, "conditionEnd", "conditionEnd", "", "");
+        endNode.setAddMethodName(false);
+        if (lastNode.getCompleteClassName() != null) {
+            if (!lastNode.getCompleteClassName().equals("break") && !lastNode.getCompleteClassName().equals("continue")
+                    && !lastNode.getCompleteClassName().equals("return")) {
+                groum.addNode(lastNode, endNode, mutexList);
+            }
+        }
+    }
+
+    protected boolean judgeConditionEnd(GroumNode node) {
         if (node.getChildNodes().size() > 0) {
-            if (node.getChildNodes().get(0).getCompleteMethodDeclaration().equals("condition")
-                    && (node.getChildNodes().get(1).getCompleteMethodDeclaration().equals("body")
-                    ||node.getChildNodes().get(1).getCompleteMethodDeclaration().equals("then"))
-                    && node.getChildNodes().get(0).getChildNodes().size() == 0
-                    && node.getChildNodes().get(1).getChildNodes().size() == 0) {
+            if (node.getChildNodes().get(0).getCompleteMethodDeclaration().equals("conditionEnd")) {
                 return true;
             } else {
                 return false;
@@ -4053,16 +3954,8 @@ public class GraphCreator extends GraphConverter {
         } else {
             return true;
         }
-//        if (node.getChildNodes().size() > 0) {
-//            if (node.getChildNodes().get(0).getCompleteMethodDeclaration().equals("conditionEnd")) {
-//                return true;
-//            } else {
-//                return false;
-//            }
-//        } else {
-//            return true;
-//        }
     }
+
 
 
     protected void setGlobalStatementAndVariable(String statement, String variableName, String type) {
@@ -4074,7 +3967,7 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    protected void dealHoleParentNode(GraphNode node) {
+    protected void dealHoleParentNode(GroumNode node) {
         if (holeParentNode != null) {
             while (holeParentNode != null) {
                 if ((holeParentNode.isPrimitive() && !holeParentNode.isVariablePreserved())) {
@@ -4089,29 +3982,20 @@ public class GraphCreator extends GraphConverter {
 //        }
     }
 
-    protected void addDataDependencyNode(List<GraphNode> list, GraphNode node) {
+    protected void addDataDependencyNode(List<GroumNode> list, GroumNode node) {
         if (list != null && node != null) {
-            for (GraphNode tempNode : list) {
+            for (GroumNode tempNode : list) {
                 if (!node.getDataDependency().contains(tempNode)) {
                     node.getDataDependency().add(tempNode);
                 }
             }
-            for (GraphNode tempNode : node.getDataDependency()) {
-                if(tempNode.getVariableName() != null){
-                    if(!tempNode.getDataDependencyFlag().equals("null")) {
-                        boolean addNodeFlag = graph.addNode (tempNode, node, mutexList, "d");
-                    }
-                }
-//                if(tempNode.getVariableName() != null){
-//                    if(!tempNode.getVariableName().equals("null")) {
-//                        boolean addNodeFlag = graph.addNode (tempNode, node, mutexList, "d");
-//                    }
-//                }
+            for (GroumNode tempNode : node.getDataDependency()) {
+                   groum.addNode(tempNode, node, mutexList);
             }
         }
     }
 
-    protected void setNodeStatementAndVariable(GraphNode node) {
+    protected void setNodeStatementAndVariable(GroumNode node) {
 //        if(node.getVariableName() != null){
 //            globalVariableName = node.getVariableName();
 //        }
@@ -4119,30 +4003,26 @@ public class GraphCreator extends GraphConverter {
 //           globalType = node.getType();
 //        }
 //        node.setVariableName(globalVariableName,globalType);
-        node.setStatement(globalStatement);
+//        node.setStatement(globalStatement);
     }
 
-    protected boolean addNode(GraphNode node, String edgeType) {
-        boolean addNodeFlag = graph.addNode (lastNode, node, mutexList, edgeType);
-        if(addNodeFlag) {
-            lastNode = node;
-        }
-        return addNodeFlag;
+    protected void addNode(GroumNode node) {
+        groum.addNode(lastNode, node, mutexList);
+        lastNode = node;
     }
 
-    protected void removeNodeInControlStructure(GraphNode node, List<GraphNode> judgeList) {
-        List<GraphNode> list = new ArrayList<>();
+    protected void removeNodeInControlStructure(GroumNode node, List<GroumNode> judgeList){
+        List<GroumNode> list = new ArrayList<>();
         list.add(node);
-        while (list.size() > 0) {
-            List<GraphNode> tempList = new ArrayList<GraphNode>();
-            for (int index = 0; index < list.size(); index++) {
-                if (!judgeList.contains(list.get(index))) {
+        while(list.size() > 0){
+            List<GroumNode> tempList = new ArrayList<GroumNode>();
+            for(int index = 0; index < list.size(); index ++) {
+                if(!judgeList.contains(list.get(index))) {
                     judgeList.add(list.get(index));
-                    List<GraphNode> parents = list.get(index).getParents();
+                    List<GroumNode> parents = list.get(index).getParents();
                     for (int i = 0; i < parents.size(); i++) {
                         if (parents.get(i) != null) {
                             parents.get(i).getChildNodes().remove(list.get(index));
-                            removeNode(list.get(index));
                         }
                     }
                     for (String key : variableNodeMap.keySet()) {
@@ -4150,7 +4030,7 @@ public class GraphCreator extends GraphConverter {
                             variableNodeMap.get(key).remove(list.get(index));
                         }
                     }
-                    List<GraphNode> children = list.get(index).getChildNodes();
+                    List<GroumNode> children = list.get(index).getChildNodes();
                     for (int i = 0; i < children.size(); i++) {
                         tempList.add(children.get(i));
                     }
@@ -4161,111 +4041,53 @@ public class GraphCreator extends GraphConverter {
         }
     }
 
-    protected void addScope(GraphNode node) {
-        for (int i = 0; i < scopeIndexList.size(); i++) {
-            if (!node.getScopeList().contains(scopeIndexList.get(i))) {
+    protected void addScope(GroumNode node){
+        for(int i = 0; i < scopeIndexList.size(); i ++){
+            if(!node.getScopeList().contains(scopeIndexList.get(i))) {
                 node.getScopeList().add(scopeIndexList.get(i));
             }
         }
     }
 
-    protected void addScopeIndex() {
-        scopeIndex++;
+    protected void addScopeIndex(){
+        scopeIndex ++;
         scopeIndexList.add(Integer.toString(scopeIndex));
     }
 
-    protected void dealScope(GraphNode node, String controlName) {
-        GraphNode tempNode = node;
-        while (tempNode.getParentNode() != null) {
-            if (tempNode.getParentNode().getCompleteMethodDeclaration().equals(controlName)) {
+    protected void dealScope(GroumNode node, String controlName){
+        GroumNode tempNode = node;
+        while(tempNode.getParentNode() != null){
+            if(tempNode.getParentNode().getCompleteMethodDeclaration().equals(controlName)){
                 mutexMap.get(tempNode.getParentNode()).add(Integer.toString(scopeIndex));
-                List<String> list = mutexMap.get(tempNode.getParentNode());
-                for (int i = 0; i < list.size(); i++) {
-                    for (int j = 0; j < list.size(); j++) {
-                        if (i != j) {
-                            if (!mutexList.contains(list.get(i) + list.get(j))) {
+                List<String> list =  mutexMap.get(tempNode.getParentNode());
+                for(int i = 0; i < list.size(); i ++){
+                    for(int j = 0; j < list.size(); j ++){
+                        if(i != j) {
+                            if(!mutexList.contains(list.get(i) + list.get(j))) {
                                 mutexList.add(list.get(i) + list.get(j));
                             }
                         }
                     }
                 }
                 break;
-            } else {
+            }else{
                 tempNode = tempNode.getParentNode();
             }
         }
     }
 
-    private void setInfo(GraphNode node,SwitchEntry entry){
-        String info = "";
-        info = entry.getBegin().get().line + " " + entry.getEnd().get().line + " ";
-        info += entry.toString();
-        node.setInfo(info);
-    }
-
-    protected void setInfo(GraphNode node, Statement stmt) {
-        String info = "";
-        info = stmt.getBegin().get().line + " " + stmt.getEnd().get().line + " ";
-        info += stmt.toString();
-        node.setInfo(info);
-    }
-
-    protected void setInfo(GraphNode node) {
-        if (lastInfo != null && !node.isControl() && !node.isCondition()) {
-            node.setInfo(lastInfo);
-        }
-    }
-
-    protected String constructInfo(Expression stmt) {
-        try {
-            String info = "";
-            info = stmt.getBegin().get().line + " " + stmt.getEnd().get().line + " ";
-            info += stmt.toString();
-            info += ";";
-            return info;
-        }catch(Exception e){
-            return "";
-        }catch(Error e){
-            return "";
-        }
-    }
-
-    protected void removeNode(GraphNode node) {
-        for (GraphNode parentNode : node.getParentNodes()) {
-            parentNode.getChildNodes().remove(node);
-        }
-    }
-
-    protected void removeUserDefinedClassNode(GraphNode node) {
-        List<GraphNode> parents = node.getParents();
-        for (GraphNode parent : parents) {
-            if (parent != null) {
-                parent.getChildNodes().remove(node);
-                parent.getEdgeMap().remove(node);
-            }
-        }
-        node.getParentNodes().clear();
-        node.setParentNode(null);
-    }
-
     protected void replaceHoleString() {
-        GraphNode tempNode = lastNode;
-        GraphNode node = new GraphNode();
-        setInfo(node);
-        addScope(node);
-        node.setCompleteMethodDeclaration("hole");
-        addNode(node, "unknown");
-        //lastNode = tempNode;
+        groum.removeHoleNode(new ArrayList<>());
+        GroumNode node = new GroumNode();
+        node.setCompleteClassName("hole");
+        node.setCompleteMethodDeclaration("//hole");
+        addNode(node);
         markHole = false;
     }
+
     protected void markHole(Statement n) {
         if (n.toString().contains("true == true") && n.getAllContainedComments() != null && n.getAllContainedComments().get(0).getContent().equals("hole")) {
             markHole = true;
         }
-    }
-
-
-    public void setUserClassProcessing(UserClassProcessing userClassProcessing) {
-        this.userClassProcessing = userClassProcessing;
     }
 }
