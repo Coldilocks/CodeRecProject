@@ -123,7 +123,7 @@ public class JavaParserUtil {
         for (String name : this.qualifiedClassName) {
             PackageElement anotherPackageElement = new PackageElement();
             anotherPackageElement.setPackageString("import " + name + "; \n");
-            if (!packageElement.matchpackageNames(anotherPackageElement)) {
+            if (packageElement == null || !packageElement.matchpackageNames(anotherPackageElement)) {
                 result.add(name);
             } else {
                 if (packageElement.matchpackageNames(anotherPackageElement)) {

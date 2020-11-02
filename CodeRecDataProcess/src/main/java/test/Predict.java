@@ -570,12 +570,14 @@ public class Predict {
                                 CompilationUnit compilationUnit = StaticJavaParser.parse(in);
                                 Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
                                 // todo: check the number
-                                ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(1).getChildNodes().get(0);
+                                ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(3).getChildNodes().get(0);
                                 parameterExpressionList.add(expression);
                             } catch (Exception e) {
+                                e.printStackTrace();
                                 result.add(null);
                                 return result;
                             } catch (Error e) {
+                                e.printStackTrace();
                                 result.add(null);
                                 return result;
                             }
@@ -600,10 +602,12 @@ public class Predict {
                                 userClassList.add(completeClassNameList.get(i));
                             }
                         } catch (Exception e) {
+                            e.printStackTrace();
                             tempUserClassList.add(completeClassNameList.get(i));
                             userClassList.add(completeClassNameList.get(i));
                         } catch (Error e) {
                             //System.err.println(e.getCause());
+                            e.printStackTrace();
                             tempUserClassList.add(completeClassNameList.get(i));
                             userClassList.add(completeClassNameList.get(i));
                         }
@@ -812,8 +816,10 @@ public class Predict {
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         } catch (Error e) {
+            e.printStackTrace();
             return null;
         }
     }
