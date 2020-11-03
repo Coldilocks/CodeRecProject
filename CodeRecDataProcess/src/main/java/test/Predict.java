@@ -27,7 +27,9 @@ import java.util.List;
 
 /**
  * Created by chenchi on 19/9/17.
+ * todo: replcace constant file path
  */
+
 public class Predict {
     private String serialNumberString;
     public GraphNode childNode;

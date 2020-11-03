@@ -14,6 +14,7 @@ import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
 
+import config.DataConfig;
 import utils.CollectionUtils;
 
 import java.io.File;
@@ -158,7 +159,7 @@ public class GroumCreator extends GroumConverter {
 
     public GroumCreator(String globalPath) {
         try {
-            File fileClassNameMap = new File(globalPath + "/class_name_map.config");
+            File fileClassNameMap = new File(DataConfig.CLASS_NAME_MAP_CONFIG_FILE_PATH);
             //File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/codetree/configs/class_name_map.config");
             FileInputStream fileInputStream = new FileInputStream(fileClassNameMap);
             Scanner scanner = new Scanner(fileInputStream);
@@ -205,7 +206,7 @@ public class GroumCreator extends GroumConverter {
         }
 
         try {
-            File fileTypeCast = new File(globalPath + "/type_cast.config");
+            File fileTypeCast = new File(DataConfig.TYPE_CAST_CONFIG_FILE_PATH);
 //            File fileTypeCast = new File(globalPath + "/Extractor/src/main/java/codetree/configs/type_cast.config");
             FileInputStream fileInputStream = new FileInputStream(fileTypeCast);
             Scanner scanner = new Scanner(fileInputStream);
@@ -213,7 +214,7 @@ public class GroumCreator extends GroumConverter {
                 castMap.put(scanner.nextLine(), true);
             }
 
-            File fileClassNameMap = new File(globalPath + "/class_name_map.config");
+            File fileClassNameMap = new File(DataConfig.CLASS_NAME_MAP_CONFIG_FILE_PATH);
 //            File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/codetree/configs/class_name_map.config");
             fileInputStream = new FileInputStream(fileClassNameMap);
             scanner = new Scanner(fileInputStream);

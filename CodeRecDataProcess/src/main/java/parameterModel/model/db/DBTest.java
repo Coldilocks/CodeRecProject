@@ -5,6 +5,9 @@ import parameterModel.model.Path;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * todo: replcace constant file path
+ */
 public class DBTest {
     public static void main(String[] args){
         String table = "patht1";

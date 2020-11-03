@@ -2,6 +2,7 @@ package parameterModel;
 
 import codeAnalysis.textTokenProcess.GloveVocab;
 import codeAnalysis.textTokenProcess.StopWordsVocab;
+import config.DataConfig;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.Scanner;
 
 /**
  * Created by chenchi on 18/1/30.
+ * todo: replcace constant file path
  */
 public class ConstructGroumMain {
     public static void main(String[] args) throws Exception {
@@ -33,7 +35,7 @@ public class ConstructGroumMain {
         // read jdk class name
         List<String> jdkList = new ArrayList<>();
         try {
-            File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/constructdata/configs/JDKCLASS.txt");
+            File fileClassNameMap = new File(DataConfig.JDKCLASS_VOCAB_FILE_PATH);
             FileInputStream fileInputStream = new FileInputStream(fileClassNameMap);
             Scanner scanner2 = new Scanner(fileInputStream);
             while (scanner2.hasNextLine()) {

@@ -25,6 +25,8 @@ public class DataConfig {
     // class_name_map配置文件
     public static String CLASS_NAME_MAP_CONFIG_FILE_PATH;
 
+    public static String ANDROID_CLASS_FILE_PATH;
+
     // type_cast配置文件
     public static String TYPE_CAST_CONFIG_FILE_PATH;
 
@@ -49,7 +51,7 @@ public class DataConfig {
     // 调试用的路径
     public static String PRE_TEST_OR_TRAIN_GRAPH_DATA_CONSTRUCT_PATH = "/Users/wangxin/Workspace/01-CodeSpace/02-TempDir/GraphDataConstruct/graph/graph_";
 
-    private static Properties properties = new Properties();
+    private static final Properties properties = new Properties();
 
     /**
      * 加载配置
@@ -63,6 +65,7 @@ public class DataConfig {
             GLOVE_VOCAB_PATH = properties.getProperty("gloveVocab");
             STOP_WORDS_PATH = properties.getProperty("stopWords");
             CLASS_NAME_MAP_CONFIG_FILE_PATH = properties.getProperty("classNameMap");
+            ANDROID_CLASS_FILE_PATH = properties.getProperty("AndroidClass");
             TYPE_CAST_CONFIG_FILE_PATH = properties.getProperty("typeCast");
             OUTPUT_GRAPH_PATH = properties.getProperty("outputGraphPath");
             GGNN_CLIENT_PYTHON_FILE_PATH = properties.getProperty("ggnnClient");

@@ -91,9 +91,9 @@ public class ConstructGraph {
                     for (BodyDeclaration body : (NodeList<BodyDeclaration>) type.getMembers()) {
                         if (body instanceof MethodDeclaration) {
 //                            int lines = countCodeLine(body);
-                            MethodDeclaration _methodDeclaration = (MethodDeclaration) body;
-                            int beginLine = _methodDeclaration.getBegin().isPresent() ? _methodDeclaration.getBegin().get().line: 0;
-                            int endLine = _methodDeclaration.getEnd().isPresent() ? _methodDeclaration.getEnd().get().line: 0;
+                            MethodDeclaration tmp_methodDeclaration = (MethodDeclaration) body;
+                            int beginLine = tmp_methodDeclaration.getBegin().isPresent() ? tmp_methodDeclaration.getBegin().get().line: 0;
+                            int endLine = tmp_methodDeclaration.getEnd().isPresent() ? tmp_methodDeclaration.getEnd().get().line: 0;
                             int lines = endLine - beginLine;
 //                            if(lines > 100){
 //                                continue;

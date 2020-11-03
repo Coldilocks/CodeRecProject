@@ -4,6 +4,9 @@ import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * todo: replcace constant file path
+ */
 public class DBManager {
 
     // 驱动程序名

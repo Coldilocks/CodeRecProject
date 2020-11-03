@@ -9,6 +9,7 @@ import java.util.Scanner;
 
 /**
  * 工具类，用于还原数据中的API调用、变量名、参数名、常量等
+ * todo: replcace constant file path
  */
 public class NameExtractor {
 

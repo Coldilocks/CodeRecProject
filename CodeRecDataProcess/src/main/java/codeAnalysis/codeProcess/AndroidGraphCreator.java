@@ -167,14 +167,12 @@ public class AndroidGraphCreator extends GraphConverter {
     }
 
     public void addClass_name_map(String type) {
-        if (class_name_map.get(type) == null) {
-            class_name_map.put(type, type);
-        }
+        class_name_map.putIfAbsent(type, type);
     }
 
     public AndroidGraphCreator(String globalPath) {
         try {
-            File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/codetree/configs/class_name_map.config");
+            File fileClassNameMap = new File(DataConfig.CLASS_NAME_MAP_CONFIG_FILE_PATH);
             //File fileClassNameMap = new File(globalPath + "/class_name_map.config");
             FileInputStream fileInputStream = new FileInputStream(fileClassNameMap);
             Scanner scanner = new Scanner(fileInputStream);
@@ -199,11 +197,11 @@ public class AndroidGraphCreator extends GraphConverter {
         variable_use_map = creator.getVariable_use_map();
         variable_line_map = creator.getVariable_line_map();
         this.jdkList = jdkList;
-        for (int i = 0; i < completeClassNameList.size(); i++) {
+        for (String s : completeClassNameList) {
             try {
-                Class clazz = Thread.currentThread().getContextClassLoader().loadClass(completeClassNameList.get(i));
-                if (jdkList.contains(completeClassNameList.get(i))) {
-                    class_name_map.put(clazz.getSimpleName(), completeClassNameList.get(i));
+                Class clazz = Thread.currentThread().getContextClassLoader().loadClass(s);
+                if (jdkList.contains(s)) {
+                    class_name_map.put(clazz.getSimpleName(), s);
                 }
             } catch (Exception e) {
                 if (!(e instanceof ClassNotFoundException)) {
@@ -216,12 +214,10 @@ public class AndroidGraphCreator extends GraphConverter {
             }
 
         }
-        for (int i = 0; i < class_variable_list.size(); i++) {
-            allClassFieldAndMethodArgumentVariable.add(class_variable_list.get(i));
-        }
+        allClassFieldAndMethodArgumentVariable.addAll(class_variable_list);
 
         try {
-            File fileTypeCast = new File(globalPath + "/Extractor/src/main/java/codetree/configs/type_cast.config");
+            File fileTypeCast = new File(DataConfig.TYPE_CAST_CONFIG_FILE_PATH);
             //File fileTypeCast = new File(globalPath + "/type_cast.config");
             FileInputStream fileInputStream = new FileInputStream(fileTypeCast);
             Scanner scanner = new Scanner(fileInputStream);
@@ -229,7 +225,7 @@ public class AndroidGraphCreator extends GraphConverter {
                 castMap.put(scanner.nextLine(), true);
             }
 
-            File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/codetree/configs/class_name_map.config");
+            File fileClassNameMap = new File(DataConfig.CLASS_NAME_MAP_CONFIG_FILE_PATH);
             //File fileClassNameMap = new File(globalPath + "/class_name_map.config");
             fileInputStream = new FileInputStream(fileClassNameMap);
             scanner = new Scanner(fileInputStream);

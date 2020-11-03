@@ -1,9 +1,13 @@
+import config.DataConfig;
 import parameterModel.model.db.Record;
 
 import java.io.*;
 import java.net.URL;
 import java.util.*;
 
+/**
+ * todo: replace the constant file path
+ */
 public class LoadSource {
     public static Map<String, Record> map = new HashMap<>();
     public static Map<String,Boolean> castMap = new HashMap<>();
@@ -36,7 +40,7 @@ public class LoadSource {
             return;
         }else{
             try {
-                File fileTypeCast = new File("/home/x/mydisk/IdeaProjects/CodeRecommendation/Extractor/src/main/java/codetree/configs/type_cast.config");
+                File fileTypeCast = new File(DataConfig.TYPE_CAST_CONFIG_FILE_PATH);
                 FileInputStream fileInputStream = new FileInputStream(fileTypeCast);
                 Scanner scanner = new Scanner(fileInputStream);
                 while (scanner.hasNextLine()) {

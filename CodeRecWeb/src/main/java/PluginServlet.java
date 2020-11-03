@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 
+import config.DataConfig;
 import net.sf.json.JSONArray;
 import static org.apache.commons.lang.StringEscapeUtils.unescapeHtml;
 
@@ -55,10 +56,9 @@ public class PluginServlet extends HttpServlet {
             //System.out.println("finish cast read");
             //System.out.println("start jdkList");
 //            String globalPath = "/Users/lingxiaoxia/IdeaProjects/CodeRecommendation";
-            String globalPath = "/home/x/mydisk/IdeaProjects/CodeRecommendation";
             //File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/constructdata/configs/JDKCLASS.txt");
             //String globalPath = "/Users/lingxiaoxia/IdeaProjects/CodeRecommendation";
-            File fileClassNameMap = new File(globalPath + "/Extractor/src/main/java/constructdata/configs/AndroidClass.txt");
+            File fileClassNameMap = new File(DataConfig.ANDROID_CLASS_FILE_PATH);
 //            String globalPath = "/mydisk/fudan_se_dl/code_recommendation";
 //            File fileClassNameMap = new File(globalPath + "/JDKCLASS.txt");
 
