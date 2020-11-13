@@ -40,30 +40,35 @@ public class ConstructGraph {
                 InputStream in = new ByteArrayInputStream(filePath.getBytes());
                 cu = StaticJavaParser.parse(in);
             }
+            // 获取文件中所有完整类名
             tempList = new ArrayList<>(javaParserUtil.parse(cu));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        /* 如果Import的包中带有*号，那么得到含有*号的这个import
-         * todo: 改成visitor模式
+
+        /* 获取文件中带*号的import
+         *
+         * 如果Import的包中带有*号，那么得到含有*号的这个import
+         * todo: 改成visitor模式；
+         *       识别错误，会算上import语句上方的注释中的'*'；
+         *       过滤方法错误，得到的str包含换行符'\n'；
+         *       把Object改成ImportDeclaration，然后getName
          */
         List<ImportDeclaration> importList = cu.getImports();
         List<String> starImportStringList = new ArrayList<>();
         if (importList != null) {
-            /*
-             *  todo: 识别错误，会算上import语句上方的注释中的*
-             *  todo: 过滤方法错误，得到的str包含换行符\n
-             *  todo: 把Object改成ImportDeclaration，然后getName
-             */
             for (Object o : importList) {
                 if (o.toString().contains("*")) {
                     String str = o.toString();
                     int index = str.indexOf("import");
                     str = str.substring(index);
                     String[] strs = str.split(" ");
-                    str = strs[strs.length - 1];//得到Import的包的信息
-                    str = str.replace(" ", ""); //替换掉空格" "
-                    str = str.replace(";", ""); //去除;
+                    // 得到Import的包的信息
+                    str = strs[strs.length - 1];
+                    // 替换掉空格" "
+                    str = str.replace(" ", "");
+                    // 去除;
+                    str = str.replace(";", "");
                     starImportStringList.add(str);
                 }
             }
@@ -72,7 +77,9 @@ public class ConstructGraph {
         if (cu.getTypes() != null) {
             for (TypeDeclaration type : cu.getTypes()) {
                 if (type instanceof ClassOrInterfaceDeclaration) {
-                    //处理field
+                    /* 处理field
+                     * 获取文件中的所有field
+                     */
                     List<VariableDeclarationExpr> fieldExpressionList = new ArrayList<>();
                     for (BodyDeclaration body : (NodeList<BodyDeclaration>) type.getMembers()) {
                         if (body instanceof FieldDeclaration) {
@@ -87,7 +94,9 @@ public class ConstructGraph {
                             }
                         }
                     }
-                    //处理method
+                    /* 处理method
+                     * 对每一个方法构建图
+                     */
                     for (BodyDeclaration body : (NodeList<BodyDeclaration>) type.getMembers()) {
                         if (body instanceof MethodDeclaration) {
 //                            int lines = countCodeLine(body);
@@ -100,14 +109,16 @@ public class ConstructGraph {
 //                            }
                             if (lines >= 2) {
 
+                                // userClassProcessing配置
                                 List<String> completeClassNameList = new ArrayList<>(tempList);
                                 List<String> userClassList = new ArrayList<>(javaParserUtil.getUserDefinedClassNames());
                                 UserClassProcessing userClassProcessing = new UserClassProcessing();
                                 userClassProcessing.setUserClassList(userClassList);
                                 userClassProcessing.setJdkList(jdkList);
                                 userClassList.add("userDefinedClass");
+
+                                //
                                 MethodDeclaration method = (MethodDeclaration) body;
-                                //System.out.println(method.getName() + " " + method.getParameters());
                                 List<String> parameterNameList = new ArrayList<>();
                                 List<String> typeMapList = new ArrayList<>();
                                 List<String> completeTypeMapList = new ArrayList<>();
@@ -121,7 +132,6 @@ public class ConstructGraph {
                                         try {
                                             CompilationUnit compilationUnit = StaticJavaParser.parse(contentString);
                                             Node node = compilationUnit.getTypes().get(0).getMembers().get(0);
-                                            // todo: node.getChildNodes().get(1) modified to node.getChildNodes().get(3)
                                             ExpressionStmt expression = (ExpressionStmt) node.getChildNodes().get(3).getChildNodes().get(0);
                                             parameterExpressionList.add(expression);
                                         } catch (Exception | Error e) {
@@ -276,6 +286,11 @@ public class ConstructGraph {
         }
     }
 
+    /**
+     * 计算代码行数
+     * @param node
+     * @return
+     */
     public int countCodeLine(Node node) {
         int result = 0;
         if (node instanceof Statement && !(node instanceof BlockStmt)) {

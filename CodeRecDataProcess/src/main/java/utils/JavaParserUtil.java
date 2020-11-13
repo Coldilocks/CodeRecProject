@@ -16,10 +16,14 @@ import java.util.regex.Pattern;
 
 public class JavaParserUtil {
 
-    private HashSet<String> classNames;// 存取待匹配类名
-    private HashSet<String> packageNames;// 存取前缀包名
-    private HashSet<String> userDefinedClassNames;// 存取过滤的类名
-    private HashSet<String> qualifiedClassName;// 完整类名列表
+    /** 存取待匹配类名 */
+    private HashSet<String> classNames;
+    /** 存取前缀包名 */
+    private HashSet<String> packageNames;
+    /** 存取过滤的类名 */
+    private HashSet<String> userDefinedClassNames;
+    /** 完整类名列表 */
+    private HashSet<String> qualifiedClassName;
 
     private String packageName = "";
     private boolean isFilter = false;
@@ -46,7 +50,6 @@ public class JavaParserUtil {
         this.packageNames.add("java.lang");
 
         cu.accept(new MyVisitor(), null);
-//        return this.handleNames(classNames, packageNames);
         return this.handleNames();
     }
 

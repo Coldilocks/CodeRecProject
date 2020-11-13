@@ -1,0 +1,29 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+/target/
+/.idea
+/.classpath
+/.settings/
+/.project
+.DS_Store
+
+CodeRecDataProcess/target/generated-sources/
+CodeRecWeb/target/generated-sources/
+out/artifacts/CodeRecWeb_Web_exploded/WEB-INF/
+out/artifacts/CodeRecWeb_Web_exploded/codeAnalysis/
+out/artifacts/CodeRecWeb_Web_exploded/config/
+out/artifacts/CodeRecWeb_Web_exploded/img/
+out/artifacts/CodeRecWeb_Web_exploded/outputGraph/
+out/artifacts/CodeRecWeb_Web_exploded/parameterModel/
+out/artifacts/CodeRecWeb_Web_exploded/scripts/
+out/artifacts/CodeRecWeb_Web_exploded/styles/
+out/artifacts/CodeRecWeb_Web_exploded/test/
+out/artifacts/CodeRecWeb_Web_exploded/utils/
+out/artifacts/CodeRecWeb_Web_exploded/vocab/
